@@ -24,8 +24,12 @@ Flutter mobile app cho hệ thống Luni Robot (iOS + Android).
 
 ## Documentation
 
-- [System Architecture](docs/plan/SYSTEM_ARCHITECTURE.md) — tổng quan toàn hệ thống
-- [App Plan](docs/plan/PLAN_APP.md) — chi tiết BLE protocol, pairing flow, screens
+📖 **[docs/](docs/README.md)** — index đầy đủ.
+
+- [Architecture](docs/architecture.md) — cấu trúc app, Riverpod providers, routing, config
+- [System Overview](docs/system-overview.md) — kiến trúc 3 project + kênh giao tiếp
+- Modules: [ble-pairing](docs/ble-pairing.md) · [ws-protocol](docs/ws-protocol.md) · [hybrid-realtime](docs/hybrid-realtime.md)
+- Guides: [build & run](docs/guides/BUILD_AND_RUN.md)
 
 ## Related Repos
 
