@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../core/config/theme.dart';
+import 'luni_kit.dart';
+
 class LuniErrorState extends StatelessWidget {
   const LuniErrorState({required this.message, this.onRetry, super.key});
 
@@ -14,19 +17,26 @@ class LuniErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.error_outline,
-              color: Theme.of(context).colorScheme.error,
-              size: 36,
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: hexA(LuniColors.red, 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: const Center(
+                child: LuniIcon('alert', size: 30, color: LuniColors.red),
+              ),
             ),
-            const SizedBox(height: 12),
-            Text(message, textAlign: TextAlign.center),
+            const SizedBox(height: 16),
+            Text(message,
+                textAlign: TextAlign.center, style: LuniTextStyles.body),
             if (onRetry != null) ...[
-              const SizedBox(height: 16),
-              OutlinedButton.icon(
-                onPressed: onRetry,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Thử lại'),
+              const SizedBox(height: 18),
+              SizedBox(
+                width: 200,
+                child: LuniGhostButton(
+                    label: 'Thử lại', icon: 'refresh', onPressed: onRetry),
               ),
             ],
           ],

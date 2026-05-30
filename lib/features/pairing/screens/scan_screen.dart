@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/config/app_config.dart';
+import '../../../core/config/theme.dart';
 import '../../../shared/widgets/luni_app_bar.dart';
+import '../../../shared/widgets/luni_kit.dart';
 import '../providers/pairing_notifier.dart';
 import '../widgets/ble_device_tile.dart';
 import '../widgets/pairing_progress.dart';
@@ -44,28 +46,46 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
     return Scaffold(
       appBar: LuniAppBar(
         title: 'Ghép nối BLE',
+        onBack: () => context.go('/home'),
         actions: [
-          IconButton(
-            onPressed: () => ref.read(pairingProvider.notifier).reset(),
-            tooltip: 'Làm mới',
-            icon: const Icon(Icons.refresh),
-          ),
+          LuniIconButton('refresh',
+              tooltip: 'Làm mới',
+              onTap: () => ref.read(pairingProvider.notifier).reset()),
+          const SizedBox(width: 4),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          PairingProgress(stage: state.stage),
-          if (state.error != null) ...[
-            const SizedBox(height: 12),
-            Text(
-              state.error!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
+      body: ScreenIn(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(18, 14, 18, 28),
+          children: [
+            PairingProgress(stage: state.stage),
+            if (state.error != null) ...[
+              const SizedBox(height: 14),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: hexA(LuniColors.red, 0.12),
+                  borderRadius: BorderRadius.circular(LuniTokens.radius),
+                  border: Border.all(color: hexA(LuniColors.red, 0.4)),
+                ),
+                child: Row(
+                  children: [
+                    const LuniIcon('alert', size: 18, color: LuniColors.red),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(state.error!,
+                          style: const TextStyle(
+                              color: LuniColors.red, fontSize: 13.5)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 22),
+            _bodyForStage(state),
           ],
-          const SizedBox(height: 20),
-          _bodyForStage(state),
-        ],
+        ),
       ),
     );
   }
@@ -76,11 +96,32 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.only(bottom: 22),
+                child: LuniFace(
+                    emotion: 'curious',
+                    size: 120,
+                    state: LuniFaceState.listening),
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.only(bottom: 12, left: 4),
+              child: Text('Robot ở gần', style: LuniTextStyles.over),
+            ),
             for (final device in state.nearbyDevices)
               BleDeviceTile(
                 device: device,
                 onTap: () =>
                     ref.read(pairingProvider.notifier).selectDevice(device),
+              ),
+            if (state.nearbyDevices.isEmpty)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Text('Đang quét thiết bị gần đây…',
+                      style: LuniTextStyles.sub),
+                ),
               ),
           ],
         );
@@ -93,7 +134,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
       case PairingStage.commit:
       case PairingStage.restart:
       case PairingStage.verify:
-        return const Center(child: CircularProgressIndicator());
+        return _BusyPanel(label: state.stage.label);
       case PairingStage.pinAuth:
         return _PinForm(
           controller: _pinController,
@@ -133,12 +174,35 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
           onOpenHome: () => context.go('/home'),
         );
       case PairingStage.error:
-        return OutlinedButton.icon(
+        return LuniGhostButton(
+          label: 'Thử lại',
+          icon: 'refresh',
           onPressed: () => ref.read(pairingProvider.notifier).reset(),
-          icon: const Icon(Icons.refresh),
-          label: const Text('Thử lại'),
         );
     }
+  }
+}
+
+class _BusyPanel extends StatelessWidget {
+  const _BusyPanel({required this.label});
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      child: Column(
+        children: [
+          const LuniFace(
+              emotion: 'thinking', size: 120, state: LuniFaceState.thinking),
+          const SizedBox(height: 22),
+          Text(label, style: LuniTextStyles.h3),
+          const SizedBox(height: 8),
+          const Text('Vui lòng giữ robot ở gần điện thoại…',
+              textAlign: TextAlign.center, style: LuniTextStyles.sub),
+        ],
+      ),
+    );
   }
 }
 
@@ -151,22 +215,19 @@ class _PinForm extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        TextField(
-          controller: controller,
-          keyboardType: TextInputType.number,
-          maxLength: 6,
-          decoration: const InputDecoration(
-            labelText: 'PIN trên màn hình robot',
-            prefixIcon: Icon(Icons.pin_outlined),
+        LabeledField(
+          label: 'PIN trên màn hình robot',
+          field: LuniField(
+            controller: controller,
+            icon: 'lock',
+            hint: '6 chữ số',
+            keyboardType: TextInputType.number,
           ),
         ),
-        const SizedBox(height: 12),
-        FilledButton.icon(
-          onPressed: onSubmit,
-          icon: const Icon(Icons.lock_open_outlined),
-          label: const Text('Mở khóa Level 1'),
-        ),
+        const SizedBox(height: 18),
+        LuniCta(label: 'Mở khoá Level 1', icon: 'lock', onPressed: onSubmit),
       ],
     );
   }
@@ -190,30 +251,26 @@ class _WifiForm extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const SectionLabel('Mạng khả dụng',
+            padding: EdgeInsets.fromLTRB(4, 0, 4, 10)),
         WifiNetworkList(onSelected: onSsidSelected),
         const SizedBox(height: 14),
-        TextField(
-          controller: ssidController,
-          decoration: const InputDecoration(
-            labelText: 'SSID',
-            prefixIcon: Icon(Icons.wifi),
-          ),
+        LabeledField(
+          label: 'SSID',
+          field: LuniField(
+              controller: ssidController, icon: 'wifi', hint: 'Tên mạng'),
         ),
-        const SizedBox(height: 12),
-        TextField(
-          controller: passwordController,
-          obscureText: true,
-          decoration: const InputDecoration(
-            labelText: 'Mật khẩu WiFi',
-            prefixIcon: Icon(Icons.password_outlined),
-          ),
+        const SizedBox(height: 14),
+        LabeledField(
+          label: 'Mật khẩu WiFi',
+          field: LuniField(
+              controller: passwordController,
+              icon: 'lock',
+              hint: '••••••••',
+              obscure: true),
         ),
         const SizedBox(height: 18),
-        FilledButton.icon(
-          onPressed: onSubmit,
-          icon: const Icon(Icons.save_outlined),
-          label: const Text('Ghi WiFi'),
-        ),
+        LuniCta(label: 'Ghi WiFi', icon: 'check', onPressed: onSubmit),
       ],
     );
   }
@@ -228,20 +285,15 @@ class _ServerForm extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            labelText: 'WebSocket URL',
-            prefixIcon: Icon(Icons.public_outlined),
-          ),
+        LabeledField(
+          label: 'WebSocket URL',
+          field: LuniField(
+              controller: controller, icon: 'globe', hint: 'wss://…'),
         ),
         const SizedBox(height: 18),
-        FilledButton.icon(
-          onPressed: onSubmit,
-          icon: const Icon(Icons.link_outlined),
-          label: const Text('Dùng URL này'),
-        ),
+        LuniCta(label: 'Dùng URL này', icon: 'link', onPressed: onSubmit),
       ],
     );
   }
@@ -256,20 +308,16 @@ class _NameForm extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            labelText: 'Tên robot',
-            prefixIcon: Icon(Icons.drive_file_rename_outline),
-          ),
+        LabeledField(
+          label: 'Tên robot',
+          field: LuniField(
+              controller: controller, icon: 'edit', hint: 'Luni của tôi'),
         ),
         const SizedBox(height: 18),
-        FilledButton.icon(
-          onPressed: onSubmit,
-          icon: const Icon(Icons.check_circle_outline),
-          label: const Text('Hoàn tất provisioning'),
-        ),
+        LuniCta(
+            label: 'Hoàn tất ghép nối', icon: 'check', onPressed: onSubmit),
       ],
     );
   }
@@ -283,21 +331,20 @@ class _DonePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        const Icon(Icons.check_circle_outline, size: 48),
-        const SizedBox(height: 12),
-        Text(
-          '$name đã sẵn sàng',
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
-        const SizedBox(height: 18),
-        FilledButton.icon(
-          onPressed: onOpenHome,
-          icon: const Icon(Icons.home_outlined),
-          label: const Text('Về Home'),
-        ),
-      ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      child: Column(
+        children: [
+          const LuniFace(emotion: 'happy', size: 150),
+          const SizedBox(height: 24),
+          Text('$name đã sẵn sàng!', style: LuniTextStyles.h2),
+          const SizedBox(height: 6),
+          const Text('Ghép nối thành công. Bắt đầu trò chuyện với Luni nhé.',
+              textAlign: TextAlign.center, style: LuniTextStyles.sub),
+          const SizedBox(height: 26),
+          LuniCta(label: 'Về trang chủ', icon: 'home', onPressed: onOpenHome),
+        ],
+      ),
     );
   }
 }

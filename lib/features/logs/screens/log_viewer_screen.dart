@@ -8,6 +8,7 @@ import '../../../core/config/theme.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/ws_client.dart';
 import '../../../shared/models/log_entry.dart';
+import '../../../shared/widgets/luni_kit.dart';
 
 class LogViewerScreen extends ConsumerStatefulWidget {
   const LogViewerScreen({required this.deviceId, super.key});
@@ -82,7 +83,8 @@ class _LogViewerScreenState extends ConsumerState<LogViewerScreen> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+          child: CircularProgressIndicator(color: LuniColors.cyan));
     }
 
     final logs = _filteredLogs;
@@ -90,9 +92,11 @@ class _LogViewerScreenState extends ConsumerState<LogViewerScreen> {
 
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
+        SizedBox(
+          height: 50,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
             children: [
               _FilterChip(
                 label: 'ALL',
@@ -100,9 +104,9 @@ class _LogViewerScreenState extends ConsumerState<LogViewerScreen> {
                 onTap: () => setState(() => _filterLevel = null),
               ),
               for (final level in LogLevel.values) ...[
-                const SizedBox(width: 6),
+                const SizedBox(width: 8),
                 _FilterChip(
-                  label: level.label,
+                  label: level.label.toUpperCase(),
                   selected: _filterLevel == level,
                   onTap: () => setState(() => _filterLevel = level),
                 ),
@@ -112,22 +116,40 @@ class _LogViewerScreenState extends ConsumerState<LogViewerScreen> {
         ),
         Expanded(
           child: logs.isEmpty
-              ? const Center(child: Text('Không có log nào.'))
+              ? const Center(
+                  child: Text('Không có log nào.', style: LuniTextStyles.sub))
               : ListView.separated(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.fromLTRB(18, 8, 18, 28),
                   itemBuilder: (context, index) {
                     final log = logs[index];
-                    return ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: _LogBadge(level: log.level),
-                      title: Text(log.message),
-                      subtitle: Text(
-                        '${log.tag} · ${formatter.format(log.createdAt)}',
-                      ),
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _LogBadge(level: log.level),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(log.message,
+                                  style: LuniTextStyles.mono.copyWith(
+                                      fontSize: 12.5, color: LuniColors.tx)),
+                              const SizedBox(height: 3),
+                              Text(
+                                '${log.tag} · ${formatter.format(log.createdAt)}',
+                                style: const TextStyle(
+                                    fontSize: 11.5, color: LuniColors.txFaint),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     );
                   },
-                  separatorBuilder: (context, index) =>
-                      const Divider(height: 20),
+                  separatorBuilder: (context, index) => const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: Divider(height: 1),
+                  ),
                   itemCount: logs.length,
                 ),
         ),
@@ -177,16 +199,26 @@ class _FilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Press(
       onTap: onTap,
-      child: Chip(
-        label: Text(label, style: const TextStyle(fontSize: 11)),
-        backgroundColor: selected
-            ? LuniColors.cyan.withValues(alpha: 0.18)
-            : null,
-        side: selected
-            ? const BorderSide(color: LuniColors.cyan)
-            : null,
+      child: Container(
+        height: 34,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: selected ? LuniColors.cyan : LuniColors.bg2,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+              color: selected ? Colors.transparent : LuniColors.hairline),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: selected ? LuniColors.onCyan : LuniColors.txMute,
+          ),
+        ),
       ),
     );
   }

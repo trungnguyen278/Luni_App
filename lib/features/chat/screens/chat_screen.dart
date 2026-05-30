@@ -3,9 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/config/theme.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/ws_client.dart';
 import '../../../shared/models/interaction.dart';
+import '../../../shared/widgets/luni_kit.dart';
 import '../widgets/chat_bubble.dart';
 import '../widgets/chat_input.dart';
 
@@ -81,15 +83,27 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+          child: CircularProgressIndicator(color: LuniColors.cyan));
     }
 
     return Column(
       children: [
         Expanded(
           child: _messages.isEmpty
-              ? const Center(
-                  child: Text('Chưa có cuộc trò chuyện nào.'),
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      LuniFace(emotion: 'curious', size: 110),
+                      SizedBox(height: 18),
+                      Text('Chưa có cuộc trò chuyện nào.',
+                          style: LuniTextStyles.body),
+                      SizedBox(height: 4),
+                      Text('Hãy nhắn gì đó cho Luni nhé!',
+                          style: LuniTextStyles.sub),
+                    ],
+                  ),
                 )
               : ListView.separated(
                   padding: const EdgeInsets.all(16),

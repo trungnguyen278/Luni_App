@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/config/theme.dart';
+
 class LoadingOverlay extends StatelessWidget {
   const LoadingOverlay({
     required this.isLoading,
@@ -20,30 +22,29 @@ class LoadingOverlay extends StatelessWidget {
         if (isLoading)
           Positioned.fill(
             child: ColoredBox(
-              color: Colors.black.withValues(alpha: 0.45),
+              color: LuniColors.bgVoid.withValues(alpha: 0.6),
               child: Center(
-                child: DecoratedBox(
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 320),
+                  padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
-                    borderRadius: BorderRadius.circular(8),
+                    color: LuniColors.bg1,
+                    borderRadius: BorderRadius.circular(LuniTokens.radius),
+                    border: Border.all(color: LuniColors.hairline),
                   ),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 320),
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                          const SizedBox(width: 12),
-                          Flexible(child: Text(label)),
-                        ],
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2.4, color: LuniColors.cyan),
                       ),
-                    ),
+                      const SizedBox(width: 14),
+                      Flexible(
+                          child: Text(label, style: LuniTextStyles.body)),
+                    ],
                   ),
                 ),
               ),

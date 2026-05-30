@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/config/theme.dart';
+import '../../../shared/widgets/luni_kit.dart';
+
 class ChatInput extends StatefulWidget {
   const ChatInput({required this.onSend, super.key});
 
@@ -20,10 +23,15 @@ class _ChatInputState extends State<ChatInput> {
 
   @override
   Widget build(BuildContext context) {
+    final hasText = _controller.text.trim().isNotEmpty;
     return SafeArea(
       top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
+        decoration: const BoxDecoration(
+          color: LuniColors.bgBase,
+          border: Border(top: BorderSide(color: LuniColors.hairline)),
+        ),
         child: Row(
           children: [
             Expanded(
@@ -31,17 +39,33 @@ class _ChatInputState extends State<ChatInput> {
                 controller: _controller,
                 minLines: 1,
                 maxLines: 3,
+                onChanged: (_) => setState(() {}),
+                onSubmitted: (_) => _send(),
+                textInputAction: TextInputAction.send,
+                style: const TextStyle(fontSize: 14.5),
                 decoration: const InputDecoration(
-                  hintText: 'Nhắn cho Luni...',
-                  prefixIcon: Icon(Icons.chat_outlined),
+                  hintText: 'Nhắn cho Luni…',
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
               ),
             ),
             const SizedBox(width: 8),
-            IconButton.filled(
-              onPressed: _send,
-              tooltip: 'Gửi',
-              icon: const Icon(Icons.send),
+            Press(
+              onTap: hasText ? _send : null,
+              child: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: hasText ? LuniColors.cyan : LuniColors.bg3,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Center(
+                  child: LuniIcon('send',
+                      size: 20,
+                      color: hasText ? LuniColors.onCyan : LuniColors.txFaint),
+                ),
+              ),
             ),
           ],
         ),
@@ -51,10 +75,9 @@ class _ChatInputState extends State<ChatInput> {
 
   void _send() {
     final text = _controller.text.trim();
-    if (text.isEmpty) {
-      return;
-    }
+    if (text.isEmpty) return;
     widget.onSend(text);
     _controller.clear();
+    setState(() {});
   }
 }
