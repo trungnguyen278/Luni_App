@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Luni — App Icon</title>
+<link rel="stylesheet" href="luni-styles.css" />
+<style>
+  body { background: radial-gradient(120% 90% at 50% 0%, #0c1020, #07090f 60%); min-height: 100vh; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 56px 28px 90px; }
+  .grid-explore { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+  .ramp { display: flex; align-items: flex-end; gap: 22px; flex-wrap: wrap; }
+  .home { width: 300px; border-radius: 34px; padding: 22px 20px 16px; position: relative; overflow: hidden; }
+  .home-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px 14px; margin-top: 70px; }
+  .home-app { display: flex; flex-direction: column; align-items: center; gap: 7px; }
+  .home-app .glyph { width: 54px; height: 54px; border-radius: 14px; }
+  .home-label { font-size: 11px; font-weight: 500; }
+  .col2 { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+  .card-soft { background: var(--bg-1); border: 1px solid var(--hairline); border-radius: 22px; padding: 26px; }
+  @media (max-width: 760px){ .grid-explore{grid-template-columns:repeat(2,1fr);} .col2{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <a href="Luni App.html" style="display:inline-flex;align-items:center;gap:8px;color:var(--tx-mute);text-decoration:none;font-size:13.5px;font-weight:600;margin-bottom:26px;">← Quay lại ứng dụng</a>
+
+  <div class="t-over" style="color:var(--cyan);">Brand · App Icon</div>
+  <h1 class="t-display" style="font-size:46px;margin:10px 0 14px;">Khuôn mặt của Luni,<br>thu nhỏ thành biểu tượng.</h1>
+  <p class="t-body" style="color:var(--tx-mute);max-width:560px;">Tên <b style="color:var(--tx-soft)">Luni</b> gợi đến <i>lunar</i> — mặt trăng. Biểu tượng kết hợp vầng trăng phát sáng với <b style="color:var(--tx-soft)">ánh nhìn hai mắt</b> đặc trưng của robot. Đơn giản, ấm áp, dễ nhận ra ngay cả ở kích thước nhỏ nhất.</p>
+
+  <!-- HERO -->
+  <div class="card-soft" style="margin-top:40px;display:flex;gap:40px;align-items:center;flex-wrap:wrap;background:radial-gradient(120% 100% at 80% 0%, rgba(91,233,255,.08), var(--bg-1) 55%);">
+    <div id="hero-icon" style="filter:drop-shadow(0 24px 50px rgba(91,233,255,.28));"></div>
+    <div style="flex:1;min-width:240px;">
+      <div class="t-over">Biểu tượng chính</div>
+      <h2 class="t-h2" style="margin:8px 0 10px;">Luni “Eclipse”</h2>
+      <p class="t-body" style="color:var(--tx-mute);">Nền tối sâu (đồng bộ giao diện app) làm bệ đỡ cho vầng trăng cyan. Hai mắt bo tròn phát quang nằm chính giữa — đúng cử chỉ “nhìn” thân thiện của Luni. Một dải sáng lưỡi liềm ở mép phải gợi pha trăng.</p>
+      <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">
+        <span class="pill" style="background:rgba(91,233,255,.14);color:var(--cyan);">#5BE9FF</span>
+        <span class="pill" style="background:var(--bg-2);color:var(--tx-mute);">Squircle iOS / Adaptive Android</span>
+        <span class="pill" style="background:var(--bg-2);color:var(--tx-mute);">1024×1024 master</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXPLORATIONS -->
+  <div class="t-over" style="margin:46px 0 16px;">Quá trình khám phá</div>
+  <div class="grid-explore">
+    <div class="card-soft" style="padding:18px;text-align:center;">
+      <div class="explore-slot" data-icon="eclipse" style="margin-bottom:14px;"></div>
+      <div class="t-h3">Eclipse ✓</div>
+      <p class="t-sub" style="margin-top:4px;">Trăng + ánh nhìn. Phương án chính.</p>
+    </div>
+    <div class="card-soft" style="padding:18px;text-align:center;">
+      <div class="explore-slot" data-icon="crescent" style="margin-bottom:14px;"></div>
+      <div class="t-h3">Crescent</div>
+      <p class="t-sub" style="margin-top:4px;">Lưỡi liềm ôm trọn khuôn mặt.</p>
+    </div>
+    <div class="card-soft" style="padding:18px;text-align:center;">
+      <div class="explore-slot" data-icon="gaze" style="margin-bottom:14px;"></div>
+      <div class="t-h3">Gaze</div>
+      <p class="t-sub" style="margin-top:4px;">Tối giản — chỉ còn đôi mắt.</p>
+    </div>
+    <div class="card-soft" style="padding:18px;text-align:center;">
+      <div class="explore-slot" data-icon="mono" style="margin-bottom:14px;"></div>
+      <div class="t-h3">Monogram</div>
+      <p class="t-sub" style="margin-top:4px;">Chữ L với chấm trăng.</p>
+    </div>
+  </div>
+
+  <!-- SIZE RAMP -->
+  <div class="t-over" style="margin:46px 0 16px;">Đọc rõ ở mọi kích thước</div>
+  <div class="card-soft">
+    <div class="ramp" id="ramp"></div>
+    <p class="t-sub" style="margin-top:20px;">Từ 180px (màn hình chính) xuống 16px (thanh thông báo) — đôi mắt vẫn là điểm nhận diện.</p>
+  </div>
+
+  <!-- HOME SCREENS -->
+  <div class="t-over" style="margin:46px 0 16px;">Trên màn hình chính</div>
+  <div class="col2">
+    <div>
+      <div class="home" id="home-dark" style="background:linear-gradient(165deg,#10131c,#05060a);border:1px solid var(--hairline);"></div>
+      <p class="t-sub" style="text-align:center;margin-top:12px;">Nền tối — viền sáng giúp icon nổi bật.</p>
+    </div>
+    <div>
+      <div class="home" id="home-light" style="background:linear-gradient(165deg,#d8e6f2,#aebfd4);"></div>
+      <p class="t-sub" style="text-align:center;margin-top:12px;">Nền sáng — nền tối của icon tạo độ tương phản chắc chắn.</p>
+    </div>
+  </div>
+
+  <p class="t-sub" style="margin-top:46px;text-align:center;color:var(--tx-faint);">Luni OS · biểu tượng dựng bằng SVG, sẵn sàng xuất 1024² cho App Store & Play Store.</p>
+</div>
+
+<script>
+// ---- Icon SVG factory ----
+function luniIcon(size, variant, id){
+  variant = variant || 'eclipse';
+  const uid = 'g'+id+variant;
+  const tile = `
+    <defs>
+      <linearGradient id="bg${uid}" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#141a2b"/><stop offset="1" stop-color="#070a12"/>
+      </linearGradient>
+      <radialGradient id="glow${uid}" cx="50%" cy="42%" r="55%">
+        <stop offset="0" stop-color="#5BE9FF" stop-opacity="${variant==='gaze'?'.55':'.42'}"/>
+        <stop offset="60%" stop-color="#5BE9FF" stop-opacity="0"/>
+      </radialGradient>
+      <linearGradient id="eye${uid}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#9bf2ff"/><stop offset="1" stop-color="#5BE9FF"/>
+      </linearGradient>
+      <filter id="b${uid}" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="2.2"/></filter>
+      <clipPath id="sq${uid}"><rect x="3" y="3" width="94" height="94" rx="24"/></clipPath>
+    </defs>`;
+
+  let inner = '';
+  if (variant === 'mono'){
+    inner = `
+      <rect x="3" y="3" width="94" height="94" rx="24" fill="url(#bg${uid})"/>
+      <rect x="3" y="3" width="94" height="94" rx="24" fill="url(#glow${uid})"/>
+      <circle cx="68" cy="33" r="9" fill="url(#eye${uid})" filter="url(#b${uid})"/>
+      <circle cx="68" cy="33" r="8" fill="url(#eye${uid})"/>
+      <path d="M34 26 V62 H60" fill="none" stroke="url(#eye${uid})" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>`;
+  } else if (variant === 'crescent'){
+    inner = `
+      <rect x="3" y="3" width="94" height="94" rx="24" fill="url(#bg${uid})"/>
+      <rect x="3" y="3" width="94" height="94" rx="24" fill="url(#glow${uid})"/>
+      <g clip-path="url(#sq${uid})">
+        <circle cx="44" cy="50" r="30" fill="none" stroke="#5BE9FF" stroke-width="7" opacity=".9"/>
+        <circle cx="60" cy="44" r="30" fill="url(#bg${uid})"/>
+      </g>
+      <rect x="38" y="44" width="8" height="18" rx="4" fill="url(#eye${uid})" filter="url(#b${uid})"/>
+      <rect x="38" y="44" width="8" height="18" rx="4" fill="url(#eye${uid})"/>
+      <rect x="54" y="44" width="8" height="18" rx="4" fill="url(#eye${uid})"/>`;
+  } else if (variant === 'gaze'){
+    inner = `
+      <rect x="3" y="3" width="94" height="94" rx="24" fill="url(#bg${uid})"/>
+      <rect x="3" y="3" width="94" height="94" rx="24" fill="url(#glow${uid})"/>
+      <rect x="30" y="34" width="13" height="32" rx="6.5" fill="url(#eye${uid})" filter="url(#b${uid})"/>
+      <rect x="30" y="34" width="13" height="32" rx="6.5" fill="url(#eye${uid})"/>
+      <rect x="57" y="34" width="13" height="32" rx="6.5" fill="url(#eye${uid})" filter="url(#b${uid})"/>
+      <rect x="57" y="34" width="13" height="32" rx="6.5" fill="url(#eye${uid})"/>`;
+  } else { // eclipse (primary)
+    inner = `
+      <rect x="3" y="3" width="94" height="94" rx="24" fill="url(#bg${uid})"/>
+      <rect x="3" y="3" width="94" height="94" rx="24" fill="url(#glow${uid})"/>
+      <g clip-path="url(#sq${uid})">
+        <circle cx="50" cy="49" r="33" fill="none" stroke="#5BE9FF" stroke-opacity=".18" stroke-width="1.5"/>
+        <path d="M50 16 a33 33 0 0 1 0 66 a26 33 0 0 0 0 -66" fill="#5BE9FF" opacity=".10"/>
+      </g>
+      <rect x="31" y="36" width="12.5" height="28" rx="6.25" fill="url(#eye${uid})" filter="url(#b${uid})"/>
+      <rect x="31" y="36" width="12.5" height="28" rx="6.25" fill="url(#eye${uid})"/>
+      <rect x="56" y="36" width="12.5" height="28" rx="6.25" fill="url(#eye${uid})" filter="url(#b${uid})"/>
+      <rect x="56" y="36" width="12.5" height="28" rx="6.25" fill="url(#eye${uid})"/>`;
+  }
+  return `<svg width="${size}" height="${size}" viewBox="0 0 100 100" style="display:block;border-radius:${size*0.22}px;">${tile}${inner}</svg>`;
+}
+
+document.getElementById('hero-icon').innerHTML = luniIcon(168, 'eclipse', 'hero');
+document.querySelectorAll('.explore-slot').forEach((el,i)=> el.innerHTML = luniIcon(96, el.dataset.icon, 'ex'+i));
+
+const ramp = document.getElementById('ramp');
+[180,120,76,48,32,16].forEach((s,i)=>{
+  const d = document.createElement('div');
+  d.style.cssText='display:flex;flex-direction:column;align-items:center;gap:10px;';
+  d.innerHTML = luniIcon(s,'eclipse','r'+i) + `<span class="t-cap">${s}px</span>`;
+  ramp.appendChild(d);
+});
+
+// home screens
+const dummy = [
+  ['#3B82F6','Ảnh'],['#34C759','Tin nhắn'],['#FF9500','Lịch'],['Luni','Luni'],
+  ['#FF2D55','Nhạc'],['#5856D6','Sức khoẻ'],['#00C7BE','Ghi chú'],['#8E8E93','Cài đặt']
+];
+function buildHome(elId, labelColor){
+  const el = document.getElementById(elId);
+  const grid = document.createElement('div'); grid.className='home-grid';
+  dummy.forEach(([c,name])=>{
+    const app = document.createElement('div'); app.className='home-app';
+    if(c==='Luni'){
+      app.innerHTML = luniIcon(54,'eclipse',elId) ;
+    } else {
+      app.innerHTML = `<div class="glyph" style="background:${c};box-shadow:0 6px 14px rgba(0,0,0,.25)"></div>`;
+    }
+    app.innerHTML += `<span class="home-label" style="color:${labelColor}">${name}</span>`;
+    grid.appendChild(app);
+  });
+  el.appendChild(grid);
+  // clock
+  const clk = document.createElement('div');
+  clk.style.cssText=`position:absolute;top:24px;left:0;right:0;text-align:center;color:${labelColor};font-weight:700;`;
+  clk.innerHTML = `<div style="font-size:13px;opacity:.8;">Thứ Sáu, 29 tháng 5</div><div style="font-size:40px;letter-spacing:-.02em;">12:15</div>`;
+  el.appendChild(clk);
+}
+buildHome('home-dark','#EAF0FF');
+buildHome('home-light','#1a2433');
+</script>
+</body>
+</html>

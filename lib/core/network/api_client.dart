@@ -9,12 +9,17 @@ final apiClientProvider = Provider<ApiClient>((ref) {
   return ApiClient(
     baseUrl: AppConfig.apiBaseUrl,
     accessToken: auth.accessToken,
+    onUnauthorized: () =>
+        ref.read(authControllerProvider.notifier).refreshAccessToken(),
   );
 });
 
 class ApiClient {
-  ApiClient({required String baseUrl, String? accessToken})
-    : dio = Dio(
+  ApiClient({
+    required String baseUrl,
+    String? accessToken,
+    Future<String?> Function()? onUnauthorized,
+  }) : dio = Dio(
         BaseOptions(
           baseUrl: baseUrl,
           connectTimeout: const Duration(seconds: 12),
@@ -25,10 +30,37 @@ class ApiClient {
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
-          if (accessToken != null && accessToken.isNotEmpty) {
-            options.headers['Authorization'] = 'Bearer $accessToken';
+          // A retry carries the refreshed token via extra; otherwise use the
+          // token captured at construction.
+          final token = options.extra['access_token'] as String? ?? accessToken;
+          if (token != null && token.isNotEmpty) {
+            options.headers['Authorization'] = 'Bearer $token';
           }
           handler.next(options);
+        },
+        onError: (error, handler) async {
+          final isUnauthorized = error.response?.statusCode == 401;
+          final alreadyRetried = error.requestOptions.extra['retried'] == true;
+          if (!isUnauthorized || alreadyRetried || onUnauthorized == null) {
+            handler.next(error);
+            return;
+          }
+
+          final newToken = await onUnauthorized();
+          if (newToken == null || newToken.isEmpty) {
+            handler.next(error);
+            return;
+          }
+
+          final retryOptions = error.requestOptions
+            ..extra['retried'] = true
+            ..extra['access_token'] = newToken;
+          try {
+            final retryResponse = await dio.fetch<dynamic>(retryOptions);
+            handler.resolve(retryResponse);
+          } on DioException catch (retryError) {
+            handler.next(retryError);
+          }
         },
       ),
     );

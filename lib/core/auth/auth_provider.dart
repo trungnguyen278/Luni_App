@@ -154,6 +154,63 @@ class AuthController extends Notifier<AuthState> {
     state = const AuthState.unauthenticated();
   }
 
+  Future<String?>? _refreshFuture;
+
+  /// Exchange the stored refresh token for a fresh access token.
+  ///
+  /// Single-flight: concurrent 401s share one in-flight refresh. Returns the
+  /// new access token, or null (and signs out) if refresh is impossible.
+  Future<String?> refreshAccessToken() {
+    return _refreshFuture ??=
+        _doRefresh().whenComplete(() => _refreshFuture = null);
+  }
+
+  Future<String?> _doRefresh() async {
+    var refreshToken = state.refreshToken;
+    if (refreshToken == null || refreshToken.isEmpty) {
+      try {
+        refreshToken = await ref
+            .read(secureStorageProvider)
+            .read(key: 'refresh_token')
+            .timeout(const Duration(milliseconds: 300));
+      } catch (_) {
+        refreshToken = null;
+      }
+    }
+
+    if (refreshToken == null || refreshToken.isEmpty) {
+      await signOut();
+      return null;
+    }
+
+    try {
+      final response = await _authDio().post<Map<String, Object?>>(
+        '/auth/refresh',
+        data: {'refresh_token': refreshToken},
+      );
+      final newAccess = response.data?['access_token'] as String?;
+      if (newAccess == null || newAccess.isEmpty) {
+        await signOut();
+        return null;
+      }
+
+      await _writeToken('access_token', newAccess);
+      final user = state.user;
+      if (user != null) {
+        state = AuthState.authenticated(
+          user: user,
+          accessToken: newAccess,
+          refreshToken: refreshToken,
+        );
+      }
+      return newAccess;
+    } on Object {
+      // Refresh token expired/revoked → force re-login.
+      await signOut();
+      return null;
+    }
+  }
+
   Future<void> _writeToken(String key, String value) async {
     try {
       await ref

@@ -12,6 +12,8 @@ final wsClientProvider = Provider<DeviceWsClient>((ref) {
   final client = DeviceWsClient(
     baseUrl: AppConfig.wsBaseUrl,
     accessToken: auth.accessToken,
+    onAuthExpired: () =>
+        ref.read(authControllerProvider.notifier).refreshAccessToken(),
   );
   ref.onDispose(client.dispose);
   return client;
@@ -84,10 +86,18 @@ class DeviceWsEvent {
 }
 
 class DeviceWsClient {
-  DeviceWsClient({required this.baseUrl, required this.accessToken});
+  DeviceWsClient({
+    required this.baseUrl,
+    required this.accessToken,
+    this.onAuthExpired,
+  });
 
   final String baseUrl;
   final String? accessToken;
+
+  /// Called when the socket is rejected for auth (close code 4001). Returning
+  /// a fresh token causes the provider to rebuild this client and reconnect.
+  final Future<String?> Function()? onAuthExpired;
 
   final _events = StreamController<DeviceWsEvent>.broadcast();
   WebSocketChannel? _channel;
@@ -125,11 +135,22 @@ class DeviceWsClient {
     _channel = WebSocketChannel.connect(uri);
     _subscription = _channel!.stream.listen(
       _handleData,
-      onError: (_) => _scheduleReconnect(),
-      onDone: _scheduleReconnect,
+      onError: (_) => _handleClose(),
+      onDone: _handleClose,
     );
 
     _startHeartbeat();
+  }
+
+  void _handleClose() {
+    // 4001 = server rejected the access token (see ws/app_client.py). Refresh
+    // and let the provider rebuild reconnect with a new token, rather than
+    // looping with the stale one.
+    if (_channel?.closeCode == 4001 && onAuthExpired != null) {
+      onAuthExpired!();
+      return;
+    }
+    _scheduleReconnect();
   }
 
   void _handleData(Object? data) {
