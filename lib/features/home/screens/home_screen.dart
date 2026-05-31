@@ -9,6 +9,7 @@ import '../../../shared/widgets/error_state_widget.dart';
 import '../../../shared/widgets/luni_app_bar.dart';
 import '../../../shared/widgets/luni_kit.dart';
 import '../../../shared/widgets/moon_glyph.dart';
+import '../../data/widgets/weather_calendar_card.dart';
 import '../../device/providers/device_list_notifier.dart';
 import '../widgets/device_card.dart';
 
@@ -116,6 +117,8 @@ class _HomeBody extends StatelessWidget {
           if (empty)
             _EmptyHome(onAdd: onAdd)
           else ...[
+            // Server-sourced weather + lunar date, keyed to the first device.
+            WeatherCalendarCard(deviceId: devices.first.id as String),
             for (final d in devices) ...[
               DeviceCard(device: d, onOpen: () => onOpen(d.id)),
               const SizedBox(height: 14),
