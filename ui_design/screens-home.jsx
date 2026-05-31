@@ -2,7 +2,10 @@
    Home — device list, empty state, quick access
    ============================================================ */
 function DeviceCard({ d, onOpen }) {
-  const em = LUNI_EMOTIONS[d.emotion] || LUNI_EMOTIONS.idle;
+  const moon = useLunar();
+  const sp = specialDay(moon);
+  const showEmotion = (sp && d.online) ? sp.emotion : d.emotion;
+  const em = LUNI_EMOTIONS[showEmotion] || LUNI_EMOTIONS.idle;
   return (
     <button className="press" onClick={() => onOpen(d)} style={{
       width: '100%', textAlign: 'left', padding: 16, borderRadius: 22, position: 'relative', overflow: 'hidden',
@@ -10,7 +13,7 @@ function DeviceCard({ d, onOpen }) {
       border: `1px solid ${d.online ? hexA(em.color, .2) : 'var(--hairline)'}`,
     }}>
       <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-        <LuniFace emotion={d.emotion} size={66} dim={!d.online} />
+        <LuniFace emotion={showEmotion} size={66} dim={!d.online} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 17, fontWeight: 700, letterSpacing: '-.01em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.name}</span>
@@ -46,6 +49,7 @@ function MiniChip({ icon, color, label }) {
 
 function HomeScreen({ app }) {
   const { devices, userName, openDevice, startPairing, openProfile, openSettings } = app;
+  const moon = useLunar();
   const online = devices.filter(d => d.online).length;
   const empty = devices.length === 0;
 
@@ -54,6 +58,9 @@ function HomeScreen({ app }) {
       <TopBar
         title="Luni"
         right={<>
+          <span title="Tuần trăng đêm nay" style={{ display: 'grid', placeItems: 'center', width: 36, height: 44 }}>
+            <MoonGlyph p={moon.p} size={22} color="var(--cyan)" />
+          </span>
           <button className="press" onClick={openProfile} style={iconBtn}><Icon name="user" size={22} /></button>
           <button className="press" onClick={openSettings} style={iconBtn}><Icon name="gear" size={22} /></button>
         </>}

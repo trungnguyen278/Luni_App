@@ -4,9 +4,11 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/config/theme.dart';
+import '../../../core/lunar/lunar_calendar.dart';
 import '../../../shared/widgets/error_state_widget.dart';
 import '../../../shared/widgets/luni_app_bar.dart';
 import '../../../shared/widgets/luni_kit.dart';
+import '../../../shared/widgets/moon_glyph.dart';
 import '../../device/providers/device_list_notifier.dart';
 import '../widgets/device_card.dart';
 
@@ -22,6 +24,16 @@ class HomeScreen extends ConsumerWidget {
       appBar: LuniAppBar(
         title: 'Luni',
         actions: [
+          Tooltip(
+            message: 'Tuần trăng đêm nay',
+            child: SizedBox(
+              width: 40,
+              height: 44,
+              child: Center(
+                child: MoonGlyph(p: ref.watch(lunarTodayProvider).p, size: 22),
+              ),
+            ),
+          ),
           LuniIconButton('user',
               tooltip: 'Hồ sơ', onTap: () => context.go('/profile')),
           LuniIconButton('gear',

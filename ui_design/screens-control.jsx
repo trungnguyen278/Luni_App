@@ -17,6 +17,7 @@ const SCENE_LIST = [
 function ControlTab({ device, update }) {
   const d = device;
   const cfg = d.config;
+  const moon = useLunar();
   const [flash, setFlash] = useS(null);
   const [tts, setTts] = useS('');
   const [emoSheet, setEmoSheet] = useS(false);
@@ -60,7 +61,9 @@ function ControlTab({ device, update }) {
         {/* Scene — opens info sheet */}
         <button className="press" disabled={off} onClick={() => setSceneSheet(true)} style={pickRow(off)}>
           <span style={{ width: 42, height: 42, borderRadius: '50%', display: 'grid', placeItems: 'center', background: hexA('#5BE9FF', .14), flex: 'none' }}>
-            <Icon name={(SCENE_LIST.find(s => s.id === d.scene) || {}).icon || 'grid'} size={20} color="var(--cyan)" strokeWidth={1.9} />
+            {d.scene === 'sleep'
+              ? <MoonGlyph p={moon.p} size={21} color="var(--purple)" />
+              : <Icon name={(SCENE_LIST.find(s => s.id === d.scene) || {}).icon || 'grid'} size={20} color="var(--cyan)" strokeWidth={1.9} />}
           </span>
           <span style={{ flex: 1, minWidth: 0 }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -150,7 +153,9 @@ function ControlTab({ device, update }) {
                 display: 'inline-flex', alignItems: 'center', gap: 7, height: 34, padding: '0 13px', borderRadius: 99,
                 background: on ? hexA('#5BE9FF', .12) : 'var(--bg-2)', border: `1px solid ${on ? hexA('#5BE9FF', .4) : 'var(--hairline)'}`,
               }}>
-                <Icon name={s.icon} size={15} color={on ? 'var(--cyan)' : s.color} strokeWidth={1.9} />
+                {s.id === 'sleep'
+                  ? <MoonGlyph p={moon.p} size={16} color={on ? 'var(--cyan)' : s.color} glow={false} />
+                  : <Icon name={s.icon} size={15} color={on ? 'var(--cyan)' : s.color} strokeWidth={1.9} />}
                 <span style={{ fontSize: 13, fontWeight: 600, color: on ? 'var(--cyan)' : 'var(--tx-soft)' }}>{SCENE_VI[s.id]}</span>
               </span>
             );

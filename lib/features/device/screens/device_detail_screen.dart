@@ -3,11 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/config/theme.dart';
+import '../../../core/lunar/lunar_calendar.dart';
 import '../../../core/network/ws_client.dart';
 import '../../../shared/models/device.dart';
 import '../../../shared/widgets/error_state_widget.dart';
 import '../../../shared/widgets/luni_app_bar.dart';
 import '../../../shared/widgets/luni_kit.dart';
+import '../../../shared/widgets/luni_toast.dart';
+import '../../../shared/widgets/moon_glyph.dart';
 import '../../chat/screens/chat_screen.dart';
 import '../../logs/screens/log_viewer_screen.dart';
 import '../../ota/screens/ota_screen.dart';
@@ -138,7 +141,10 @@ class _OverviewTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final d = device;
-    final em = luniEmotion(d.emotion);
+    // On Rằm / Mùng Một an online Luni auto-shifts to the night's mood.
+    final sp = specialDay(ref.watch(lunarTodayProvider));
+    final heroEmotion = (sp != null && d.isOnline) ? sp.emotion : d.emotion;
+    final em = luniEmotion(heroEmotion);
     void setEmotion(String e) => ref
         .read(deviceListProvider.notifier)
         .sendCommand(d.id, DeviceCommand.setEmotion, value: e);
@@ -165,7 +171,7 @@ class _OverviewTab extends ConsumerWidget {
           ),
           child: Column(
             children: [
-              LuniFace(emotion: d.emotion, size: 150, dim: !d.isOnline),
+              LuniFace(emotion: heroEmotion, size: 150, dim: !d.isOnline),
               const SizedBox(height: 14),
               Text(
                 d.isOnline
@@ -178,6 +184,31 @@ class _OverviewTab extends ConsumerWidget {
                   padding: const EdgeInsets.only(top: 2),
                   child: Text(em.label,
                       style: LuniTextStyles.h2.copyWith(color: em.color)),
+                ),
+              if (sp != null && d.isOnline)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: hexA(sp.color, 0.14),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: hexA(sp.color, 0.32)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        MoonGlyph(p: ref.watch(lunarTodayProvider).p,
+                            size: 15, color: sp.color, glow: false, ring: false),
+                        const SizedBox(width: 6),
+                        Text('Tự đổi vì ${sp.vi}',
+                            style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w700,
+                                color: sp.color)),
+                      ],
+                    ),
+                  ),
                 ),
               const SizedBox(height: 16),
               Row(
@@ -203,6 +234,9 @@ class _OverviewTab extends ConsumerWidget {
             ],
           ),
         ),
+        const SizedBox(height: 14),
+        // moon phase — Luni follows the lunar cycle
+        MoonCard(accent: em.color),
         const SizedBox(height: 14),
         // stat grid
         Row(
@@ -531,22 +565,7 @@ class _ControlTabState extends ConsumerState<_ControlTab> {
 
   DeviceListNotifier get _notifier => ref.read(deviceListProvider.notifier);
 
-  void _ping(String msg) {
-    ScaffoldMessenger.of(context)
-      ..clearSnackBars()
-      ..showSnackBar(SnackBar(
-        content: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const LuniIcon('check',
-                size: 17, color: LuniColors.green, strokeWidth: 2.4),
-            const SizedBox(width: 9),
-            Flexible(child: Text(msg)),
-          ],
-        ),
-        width: 280,
-      ));
-  }
+  void _ping(String msg) => luniToast(context, msg);
 
   @override
   Widget build(BuildContext context) {
@@ -624,9 +643,17 @@ class _ControlTabState extends ConsumerState<_ControlTab> {
               ),
               const Divider(indent: 14, endIndent: 14, height: 1),
               _PickRow(
-                iconBg: hexA(LuniColors.cyan, 0.14),
+                iconBg: hexA(
+                    d.scene == 'sleep' ? LuniColors.purple : LuniColors.cyan,
+                    0.14),
                 icon: sceneIcon,
                 iconColor: LuniColors.cyan,
+                leading: d.scene == 'sleep'
+                    ? MoonGlyph(
+                        p: ref.watch(lunarTodayProvider).p,
+                        size: 21,
+                        color: LuniColors.purple)
+                    : null,
                 title: 'Cảnh hiển thị',
                 badge: ('Tự động', LuniColors.cyan),
                 subtitle: '${sceneLabel(d.scene)} · 32 cảnh',
@@ -904,10 +931,17 @@ class _ControlTabState extends ConsumerState<_ControlTab> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          LuniIcon(icon,
-                              size: 15,
-                              strokeWidth: 1.9,
-                              color: on ? LuniColors.cyan : color),
+                          if (id == 'sleep')
+                            MoonGlyph(
+                                p: LuniMoon.today().p,
+                                size: 16,
+                                color: on ? LuniColors.cyan : color,
+                                glow: false)
+                          else
+                            LuniIcon(icon,
+                                size: 15,
+                                strokeWidth: 1.9,
+                                color: on ? LuniColors.cyan : color),
                           const SizedBox(width: 7),
                           Text(sceneLabel(id),
                               style: TextStyle(
@@ -939,6 +973,7 @@ class _PickRow extends StatelessWidget {
     required this.enabled,
     required this.onTap,
     this.glow = false,
+    this.leading,
   });
 
   final Color iconBg;
@@ -950,6 +985,9 @@ class _PickRow extends StatelessWidget {
   final bool enabled;
   final VoidCallback onTap;
   final bool glow;
+
+  /// Overrides the leading [icon] (e.g. a phase-aware MoonGlyph for "sleep").
+  final Widget? leading;
 
   @override
   Widget build(BuildContext context) {
@@ -972,8 +1010,9 @@ class _PickRow extends StatelessWidget {
                       : null,
                 ),
                 child: Center(
-                    child: LuniIcon(icon,
-                        size: 20, strokeWidth: 2, color: iconColor)),
+                    child: leading ??
+                        LuniIcon(icon,
+                            size: 20, strokeWidth: 2, color: iconColor)),
               ),
               const SizedBox(width: 13),
               Expanded(

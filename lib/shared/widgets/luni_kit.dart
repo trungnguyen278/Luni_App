@@ -1177,6 +1177,55 @@ class DangerButton extends StatelessWidget {
   }
 }
 
+/// Small uppercase label above a sheet input (`.t-cap`), mirrors `FieldLabel`.
+class FieldLabel extends StatelessWidget {
+  const FieldLabel(this.text, {super.key});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 7),
+        child: Text(text.toUpperCase(), style: LuniTextStyles.cap),
+      );
+}
+
+/// Bottom action row for sheets — a ghost "Huỷ" + a primary/danger confirm.
+/// Mirrors the design's `SheetActions`.
+class SheetActions extends StatelessWidget {
+  const SheetActions({
+    super.key,
+    this.onCancel,
+    this.onSave,
+    this.saveLabel = 'Lưu',
+    this.cancelLabel = 'Huỷ',
+    this.danger = false,
+  });
+
+  final VoidCallback? onCancel;
+  final VoidCallback? onSave;
+  final String saveLabel;
+  final String cancelLabel;
+  final bool danger;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(child: LuniGhostButton(label: cancelLabel, onPressed: onCancel)),
+        const SizedBox(width: 12),
+        Expanded(
+          child: LuniCta(
+            label: saveLabel,
+            color: danger ? LuniColors.red : LuniColors.cyan,
+            foreground: danger ? LuniColors.tx : LuniColors.onCyan,
+            onPressed: onSave,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 /// An equal-width segmented selector (log level / language).
 class LuniSegmented<T> extends StatelessWidget {
   const LuniSegmented({

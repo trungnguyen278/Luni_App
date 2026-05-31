@@ -105,6 +105,10 @@ class LuniIcons {
     'speaker':
         '<rect x="6" y="3" width="12" height="18" rx="3"/><circle cx="12" cy="14" r="3.5"/><circle cx="12" cy="7" r="1.2"/>',
     'flag': '<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',
+    'camera':
+        '<rect x="3" y="6.5" width="18" height="13" rx="2.5"/><circle cx="12" cy="13" r="3.5"/><path d="M8 6.5l1.5-2.5h5L16 6.5"/>',
+    'image':
+        '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="2"/><path d="M5 18.5l5-4.5 3.5 3 3-2.5 3 3.5"/>',
   };
 
   static String hex(Color c) =>

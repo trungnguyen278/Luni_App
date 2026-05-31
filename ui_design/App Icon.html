@@ -17,7 +17,9 @@
   .home-label { font-size: 11px; font-weight: 500; }
   .col2 { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
   .card-soft { background: var(--bg-1); border: 1px solid var(--hairline); border-radius: 22px; padding: 26px; }
-  @media (max-width: 760px){ .grid-explore{grid-template-columns:repeat(2,1fr);} .col2{grid-template-columns:1fr;} }
+  .month-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 8px; }
+  .moon-cell:hover { background: var(--bg-2) !important; }
+  @media (max-width: 760px){ .grid-explore{grid-template-columns:repeat(2,1fr);} .col2{grid-template-columns:1fr;} .month-grid{grid-template-columns:repeat(6,1fr);} }
 </style>
 </head>
 <body>
@@ -42,6 +44,32 @@
         <span class="pill" style="background:var(--bg-2);color:var(--tx-mute);">1024×1024 master</span>
       </div>
     </div>
+  </div>
+
+  <!-- MOON-AWARE ICON -->
+  <div class="t-over" style="margin:46px 0 16px;color:var(--cyan);">Biểu tượng đổi theo trăng</div>
+  <div class="card-soft" style="display:flex;gap:34px;flex-wrap:wrap;align-items:center;background:radial-gradient(120% 100% at 12% 0%, rgba(91,233,255,.08), var(--bg-1) 55%);">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:14px;">
+      <div id="moon-hero" style="filter:drop-shadow(0 18px 40px rgba(91,233,255,.22));"></div>
+      <div id="moon-meta" style="text-align:center;min-height:40px;"></div>
+    </div>
+    <div style="flex:1;min-width:260px;">
+      <p class="t-body" style="color:var(--tx-mute);margin:0 0 18px;">Vì Luni là <b style="color:var(--tx-soft)">mặt trăng</b>, biểu tượng app cũng tròn khuyết theo âm lịch. Chỉnh ngày để xem icon đổi — dùng chung ngày với ứng dụng.</p>
+      <div id="moon-date" style="display:flex;align-items:center;gap:12px;margin-bottom:14px;"></div>
+      <div id="moon-jumps" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+    </div>
+  </div>
+  <div class="card-soft" style="margin-top:18px;">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px;">
+      <div class="t-over" style="margin:0;color:var(--cyan);">Bộ chuẩn · 30 ngày âm lịch</div>
+      <span class="t-sub" style="margin:0;">Chạm một ngày để xem icon ở pha đó</span>
+    </div>
+    <div id="moon-month" class="month-grid"></div>
+    <div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:20px;">
+      <span style="display:inline-flex;align-items:center;gap:7px;" class="t-sub"><span style="width:9px;height:9px;border-radius:99px;background:#FFD96B;box-shadow:0 0 8px #FFD96B;"></span> Rằm — ngày <b style="color:#FFD96B">15 &amp; 16</b> đều tròn vành vạnh</span>
+      <span style="display:inline-flex;align-items:center;gap:7px;" class="t-sub"><span style="width:9px;height:9px;border-radius:99px;background:#B9A0FF;box-shadow:0 0 8px #B9A0FF;"></span> Sóc — mùng 1 chỉ còn viền sáng + ánh đất</span>
+    </div>
+    <p class="t-sub" style="margin-top:14px;">Độ sáng theo đường cong synodic <span class="mono">(1 − cos 2π·tuổi/29,53) ⁄ 2</span> — trăng tròn rơi quanh ngày 15,5 nên cả ngày 15 lẫn 16 đều ~99–100%; mùng 1 và ngày 30 về ~0%. Cùng một vầng trăng với biểu tượng app, chỉ khác đôi mắt.</p>
   </div>
 
   <!-- EXPLORATIONS -->
@@ -93,9 +121,69 @@
 </div>
 
 <script>
+// ---- Lunar math (mirrors luni-moon.jsx) ----
+var SYN = 29.530588853, REF = Date.UTC(2000,0,6,18,14)/86400000;
+function lunar(off){
+  var d = new Date(Date.now() + (off||0)*86400000);
+  var age = ((d.getTime()/86400000) - REF) % SYN; if(age<0) age+=SYN;
+  var p = age/SYN, illum = (1-Math.cos(2*Math.PI*p))/2;
+  return { date:d, p:p, illum:illum, lunarDay:Math.floor(age)+1, age:age };
+}
+var PHV = [[0,'Trăng non'],[.125,'Lưỡi liềm đầu'],[.25,'Thượng huyền'],[.375,'Khuyết đầu'],[.5,'Trăng tròn'],[.625,'Khuyết cuối'],[.75,'Hạ huyền'],[.875,'Lưỡi liềm tàn']];
+function phaseName(p){ var b=9,n=''; PHV.forEach(function(x){ var dd=Math.abs(x[0]-p); dd=Math.min(dd,1-dd); if(dd<b){b=dd;n=x[1];} }); return n; }
+function special(il){ if(il>0.965) return {vi:'Đêm Rằm', c:'#FFD166'}; if(il<0.035) return {vi:'Mùng Một', c:'#B48CFF'}; return null; }
+var WD = ['Chủ nhật','Thứ Hai','Thứ Ba','Thứ Tư','Thứ Năm','Thứ Sáu','Thứ Bảy'];
+function fmtD(d){ return WD[d.getDay()]+' · '+String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear(); }
+function getOff(){ return parseInt(localStorage.getItem('luni_day_offset')||'0',10)||0; }
+function setOff(v){ localStorage.setItem('luni_day_offset', String(v)); renderMoon(); }
+function offToSpecial(kind){ var o=getOff(); for(var k=1;k<=60;k++){ var L=lunar(o+k); if(kind==='ram'&&L.illum>0.965) return o+k; if(kind==='soc'&&L.illum<0.035) return o+k; } return o; }
+
+// ---- Unified moon renderer (vanilla port of luni-moon.jsx MoonGlyph) ----
+// Same disc as the dashboard glyph; the app icon just adds Luni's eyes on top.
+function hexa(hex,a){ var n=parseInt(hex.slice(1),16); return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')'; }
+function moonAccent(illum){
+  if(illum>0.985) return {kind:'full', accent:'#FFD96B'};  // Rằm — chỉ ngày 15 & 16 (vành vạnh ~99–100%)
+  if(illum<0.03)  return {kind:'new',  accent:'#B9A0FF'};  // Sóc / mùng 1 & cuối tháng — chỉ còn viền sáng
+  return {kind:'normal', accent:null};
+}
+function moonInner(p, o){
+  o = o || {};
+  var color = o.color || '#5BE9FF', dark = o.dark || '#0B0F18';
+  var cos = Math.cos(2*Math.PI*p), illum = (1-cos)/2, waxing = p < 0.5;
+  var rx = 50*Math.abs(cos), gibbous = illum > 0.5;
+  var sp = moonAccent(illum), accent = sp.accent || color, rimC = sp.kind==='normal' ? color : accent;
+  var glowC = sp.kind==='full' ? hexa(accent,0.6) : sp.kind==='new' ? hexa(accent,0.42) : hexa(color, 0.55*illum+0.1);
+  var glowR = sp.kind==='full' ? 9 : sp.kind==='new' ? 3.5 : (2 + illum*6);
+  var uid = o.uid || ('u'+Math.round(p*1000)+'_'+Math.round(Math.random()*1e5));
+  var litTop = sp.kind==='full' ? '#FFF6E0' : '#EAF2FF', litEdge = sp.kind==='full' ? '#F2D58F' : '#B8CCEC';
+  var semi = waxing ? 'M50,0 A50,50 0 0 1 50,100 Z' : 'M50,0 A50,50 0 0 0 50,100 Z';
+  var craters = '';
+  if(illum > 0.45){
+    var cf = sp.kind==='full' ? '#E9C97E' : '#C9DCF5', co = sp.kind==='full' ? 0.42 : 0.5;
+    var a = (waxing && !gibbous), x1 = a?64:42, x2 = a?58:56, x3 = a?74:32;
+    craters = '<g fill="'+cf+'" opacity="'+co+'"><circle cx="'+x1+'" cy="37" r="4"/><circle cx="'+x2+'" cy="62" r="6"/><circle cx="'+x3+'" cy="56" r="3"/></g>';
+  }
+  var eyesG = '';
+  if(o.eyes) eyesG = '<g fill="'+color+'" style="filter:drop-shadow(0 0 4px '+hexa(color,0.95)+')"><rect x="34" y="37" width="11.5" height="26" rx="5.75"/><rect x="54.5" y="37" width="11.5" height="26" rx="5.75"/></g>';
+  return '<defs><radialGradient id="lg'+uid+'" cx="36%" cy="32%" r="74%">'
+    + '<stop offset="0" stop-color="'+litTop+'"/><stop offset="0.74" stop-color="#EAF2FF"/><stop offset="1" stop-color="'+litEdge+'"/></radialGradient></defs>'
+    + '<circle cx="50" cy="50" r="50" fill="'+dark+'"/>'
+    + '<circle cx="50" cy="50" r="50" fill="'+(sp.kind==='new'?accent:color)+'" opacity="'+(sp.kind==='new'?0.13:0.06)+'"/>'
+    + '<g style="filter:drop-shadow(0 0 '+glowR+'px '+glowC+')">'
+    + (illum>0.012 ? '<path d="'+semi+'" fill="url(#lg'+uid+')"/>' : '')
+    + (rx>0.4 ? '<ellipse cx="50" cy="50" rx="'+rx.toFixed(2)+'" ry="50" fill="'+(gibbous?'url(#lg'+uid+')':dark)+'"/>' : '')
+    + '</g>' + craters
+    + '<circle cx="50" cy="50" r="49.2" fill="none" stroke="'+rimC+'" stroke-opacity="'+(sp.kind==='new'?0.85:sp.kind==='full'?0.6:0.4)+'" stroke-width="'+(sp.kind==='new'?2:1.4)+'"'+(sp.kind==='new'?' style="filter:drop-shadow(0 0 4px '+hexa(accent,0.7)+')"':'')+'/>'
+    + eyesG;
+}
+function moonGlyphSVG(size, p, o){
+  return '<svg viewBox="0 0 100 100" width="'+size+'" height="'+size+'" style="display:block;overflow:visible;">'+moonInner(p, o)+'</svg>';
+}
+
 // ---- Icon SVG factory ----
-function luniIcon(size, variant, id){
+function luniIcon(size, variant, id, p){
   variant = variant || 'eclipse';
+  if(p==null) p = lunar(getOff()).p;
   const uid = 'g'+id+variant;
   const tile = `
     <defs>
@@ -136,22 +224,19 @@ function luniIcon(size, variant, id){
     inner = `
       <rect x="3" y="3" width="94" height="94" rx="24" fill="url(#bg${uid})"/>
       <rect x="3" y="3" width="94" height="94" rx="24" fill="url(#glow${uid})"/>
-      <rect x="30" y="34" width="13" height="32" rx="6.5" fill="url(#eye${uid})" filter="url(#b${uid})"/>
-      <rect x="30" y="34" width="13" height="32" rx="6.5" fill="url(#eye${uid})"/>
-      <rect x="57" y="34" width="13" height="32" rx="6.5" fill="url(#eye${uid})" filter="url(#b${uid})"/>
-      <rect x="57" y="34" width="13" height="32" rx="6.5" fill="url(#eye${uid})"/>`;
-  } else { // eclipse (primary)
+      <rect x="27" y="34" width="18" height="32" rx="7" fill="url(#eye${uid})" filter="url(#b${uid})"/>
+      <rect x="27" y="34" width="18" height="32" rx="7" fill="url(#eye${uid})"/>
+      <rect x="55" y="34" width="18" height="32" rx="7" fill="url(#eye${uid})" filter="url(#b${uid})"/>
+      <rect x="55" y="34" width="18" height="32" rx="7" fill="url(#eye${uid})"/>`;
+  } else { // eclipse (primary) — Luni's moon face: unified disc + signature eyes
     inner = `
       <rect x="3" y="3" width="94" height="94" rx="24" fill="url(#bg${uid})"/>
       <rect x="3" y="3" width="94" height="94" rx="24" fill="url(#glow${uid})"/>
-      <g clip-path="url(#sq${uid})">
-        <circle cx="50" cy="49" r="33" fill="none" stroke="#5BE9FF" stroke-opacity=".18" stroke-width="1.5"/>
-        <path d="M50 16 a33 33 0 0 1 0 66 a26 33 0 0 0 0 -66" fill="#5BE9FF" opacity=".10"/>
-      </g>
-      <rect x="31" y="36" width="12.5" height="28" rx="6.25" fill="url(#eye${uid})" filter="url(#b${uid})"/>
-      <rect x="31" y="36" width="12.5" height="28" rx="6.25" fill="url(#eye${uid})"/>
-      <rect x="56" y="36" width="12.5" height="28" rx="6.25" fill="url(#eye${uid})" filter="url(#b${uid})"/>
-      <rect x="56" y="36" width="12.5" height="28" rx="6.25" fill="url(#eye${uid})"/>`;
+      <svg x="18" y="17" width="64" height="64" viewBox="0 0 100 100" style="overflow:visible">${moonInner(p, { uid: uid })}</svg>
+      <rect x="29.5" y="39" width="15.5" height="22" rx="5.5" fill="url(#eye${uid})" filter="url(#b${uid})"/>
+      <rect x="29.5" y="39" width="15.5" height="22" rx="5.5" fill="url(#eye${uid})"/>
+      <rect x="55" y="39" width="15.5" height="22" rx="5.5" fill="url(#eye${uid})" filter="url(#b${uid})"/>
+      <rect x="55" y="39" width="15.5" height="22" rx="5.5" fill="url(#eye${uid})"/>`;
   }
   return `<svg width="${size}" height="${size}" viewBox="0 0 100 100" style="display:block;border-radius:${size*0.22}px;">${tile}${inner}</svg>`;
 }
@@ -194,6 +279,60 @@ function buildHome(elId, labelColor){
 }
 buildHome('home-dark','#EAF0FF');
 buildHome('home-light','#1a2433');
+
+// ---- Moon-aware section (interactive date control) ----
+function nearestPhase(p){ var b=9,n=0; PHV.forEach(function(x,i){ var dd=Math.abs(x[0]-p); dd=Math.min(dd,1-dd); if(dd<b){b=dd;n=i;} }); return n; }
+function jumpBtn(label,active,c,k){ return '<button class="jb" data-k="'+k+'" style="height:34px;padding:0 14px;border-radius:99px;font-size:12.5px;font-weight:700;cursor:pointer;background:'+(active?hexa(c,.16):'var(--bg-2)')+';color:'+(active?c:'var(--tx-soft)')+';border:1px solid '+(active?hexa(c,.4):'var(--hairline)')+';">'+label+'</button>'; }
+var STEPB='width:42px;height:42px;border-radius:13px;flex:none;background:var(--bg-2);border:1px solid var(--hairline);color:var(--tx-soft);font-size:20px;font-weight:700;cursor:pointer;';
+function offToPhase(tp){ var cur=lunar(getOff()); var dAge=(tp*SYN)-cur.age; dAge=((dAge%SYN)+SYN)%SYN; if(dAge>SYN/2) dAge-=SYN; return getOff()+Math.round(dAge); }
+function offToDay(d){ return offToPhase((d-1)/SYN); }
+
+// The 30-day standard set: age = d-1, illum theo đường cong synodic.
+var LUNAR_DAYS = [];
+for(var _d=1; _d<=30; _d++){ var _p=(_d-1)/SYN, _il=(1-Math.cos(2*Math.PI*_p))/2; LUNAR_DAYS.push({day:_d, p:_p, illum:_il, kind:_il>0.97?'full':_il<0.03?'new':'normal'}); }
+
+function renderMonth(activeDay){
+  var host = document.getElementById('moon-month'); if(!host) return;
+  host.innerHTML = '';
+  LUNAR_DAYS.forEach(function(L){
+    var on = L.day === activeDay;
+    var spC = L.kind==='full' ? '#FFD96B' : L.kind==='new' ? '#B9A0FF' : '#5BE9FF';
+    var cell = document.createElement('button');
+    cell.className = 'press moon-cell';
+    cell.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:6px;padding:11px 2px 8px;border-radius:14px;cursor:pointer;transition:all .18s var(--ease);'
+      + 'background:'+(on?hexa(spC,.14):'transparent')+';border:1px solid '+(on?hexa(spC,.42):'transparent')+';';
+    var tag = (L.day===15||L.day===16) ? 'Rằm' : L.day===1 ? 'Sóc' : '';
+    var numC = (L.day===15||L.day===16) ? '#FFD96B' : L.day===1 ? '#B9A0FF' : (on ? spC : 'var(--tx-soft)');
+    cell.innerHTML = moonGlyphSVG(38, L.p, { uid:'mo'+L.day })
+      + '<span class="mono" style="font-size:11px;font-weight:800;letter-spacing:-.01em;color:'+numC+'">'+L.day+'</span>'
+      + (tag ? '<span class="mono" style="font-size:8px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:'+hexa(spC,.85)+'">'+tag+'</span>' : '<span style="height:11px"></span>');
+    cell.onclick = function(){ setOff(offToDay(L.day)); };
+    host.appendChild(cell);
+  });
+}
+
+function renderMoon(){
+  var off=getOff(), L=lunar(off), sp=special(L.illum), today=off===0;
+  var c = sp ? sp.c : '#5BE9FF';
+  document.getElementById('moon-hero').innerHTML = luniIcon(150,'eclipse','moonhero',L.p);
+  document.getElementById('hero-icon').innerHTML = luniIcon(168,'eclipse','hero',L.p);
+  document.getElementById('moon-meta').innerHTML =
+    '<div class="t-h3" style="margin-bottom:3px;color:'+c+'">'+phaseName(L.p)+'</div>'+
+    '<div class="mono" style="font-size:12px;color:var(--tx-mute)">Âm lịch '+L.lunarDay+'/30 · sáng '+Math.round(L.illum*100)+'%</div>'+
+    (sp?'<div class="pill" style="margin-top:9px;background:'+hexa(sp.c,.16)+';color:'+sp.c+'">'+sp.vi+'</div>':'');
+  document.getElementById('moon-date').innerHTML =
+    '<button class="stepb" data-d="-1" style="'+STEPB+'">‹</button>'+
+    '<div style="flex:1;text-align:center;"><div style="font-weight:800;font-size:15px;letter-spacing:-.01em;">'+fmtD(L.date)+'</div><div class="mono" style="font-size:11px;color:var(--tx-faint);margin-top:2px;">'+(today?'hôm nay (thật)':('lệch '+(off>0?'+':'')+off+' ngày'))+'</div></div>'+
+    '<button class="stepb" data-d="1" style="'+STEPB+'">›</button>';
+  document.getElementById('moon-jumps').innerHTML =
+    jumpBtn('Hôm nay', today, '#5BE9FF', 'today')+
+    jumpBtn('Tới đêm Rằm', false, '#FFD166', 'ram')+
+    jumpBtn('Tới mùng 1', false, '#B48CFF', 'soc');
+  renderMonth(L.lunarDay);
+  document.querySelectorAll('#moon-date .stepb').forEach(function(b){ b.onclick=function(){ setOff(getOff()+parseInt(b.dataset.d)); }; });
+  document.querySelectorAll('#moon-jumps .jb').forEach(function(b){ b.onclick=function(){ var k=b.dataset.k; setOff(k==='today'?0:offToSpecial(k)); }; });
+}
+renderMoon();
 </script>
 </body>
 </html>

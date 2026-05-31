@@ -1,21 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/theme.dart';
+import '../../../core/lunar/lunar_calendar.dart';
 import '../../../shared/models/device.dart';
 import '../../../shared/widgets/luni_kit.dart';
 
 /// Home device card — LuniFace + status + battery + meta chips.
 /// Port of `DeviceCard` in `ui_design/screens-home.jsx`.
-class DeviceCard extends StatelessWidget {
+class DeviceCard extends ConsumerWidget {
   const DeviceCard({required this.device, required this.onOpen, super.key});
 
   final Device device;
   final VoidCallback onOpen;
 
   @override
-  Widget build(BuildContext context) {
-    final em = luniEmotion(device.emotion);
+  Widget build(BuildContext context, WidgetRef ref) {
     final online = device.isOnline;
+    // On Rằm / Mùng Một an online Luni auto-shifts to the night's mood.
+    final sp = specialDay(ref.watch(lunarTodayProvider));
+    final shownEmotion = (sp != null && online) ? sp.emotion : device.emotion;
+    final em = luniEmotion(shownEmotion);
 
     return Press(
       onTap: onOpen,
@@ -40,7 +45,7 @@ class DeviceCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                LuniFace(emotion: device.emotion, size: 66, dim: !online),
+                LuniFace(emotion: shownEmotion, size: 66, dim: !online),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(

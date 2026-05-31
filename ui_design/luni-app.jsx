@@ -3,7 +3,7 @@
    ============================================================ */
 const SEED_DEVICES = [
   { id: 'AA:BB:CC:DD:EE:01', name: 'Luni Phòng khách', location: 'Phòng khách', city: 'Hà Nội', model: 'luni_v2_s3c5', fwVersion: '2.1.0', online: true, batteryPercent: 84, charging: false, rssi: -42, emotion: 'happy', scene: 'weather', config: { volume: 62, brightness: 92, logLevel: 'info', autoOta: false } },
-  { id: 'AA:BB:CC:DD:EE:02', name: 'Luni Bàn làm việc', location: 'Góc làm việc', city: 'Hồ Chí Minh', model: 'luni_v2_s3c5', fwVersion: '2.0.4', online: false, batteryPercent: 31, charging: true, rssi: -67, emotion: 'sleepy', scene: 'clock', config: { volume: 45, brightness: 70, logLevel: 'warn', autoOta: true } },
+  { id: 'AA:BB:CC:DD:EE:02', name: 'Luni Bàn làm việc', location: 'Góc làm việc', city: 'Hồ Chí Minh', model: 'luni_v2_s3c5', fwVersion: '2.0.4', online: false, batteryPercent: 31, charging: true, rssi: -67, emotion: 'sleepy', scene: 'sleep', config: { volume: 45, brightness: 70, logLevel: 'warn', autoOta: true } },
 ];
 
 function LuniApp() {
@@ -51,7 +51,7 @@ function LuniApp() {
         <Phone>{body}</Phone>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: 188 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: 230 }}>
         <div className="t-over" style={{ marginBottom: 6 }}>{role === 'admin' ? 'Luni Service · Admin' : 'Luni OS · Prototype'}</div>
         {jumps.map(([id, ic, label]) => {
           const on = screen === id;
@@ -76,6 +76,7 @@ function LuniApp() {
           </button>
         </a>
         <p style={{ fontSize: 11.5, color: 'var(--tx-faint)', lineHeight: 1.5, margin: '12px 4px 0' }}>Bấm để nhảy nhanh giữa các luồng, hoặc dùng điều hướng trong app.</p>
+        {role !== 'admin' && <LuniDateDevPanel accent="#5BE9FF" />}
       </div>
     </div>
   );

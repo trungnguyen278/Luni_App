@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
 import '../../core/config/theme.dart';
+import '../../core/lunar/lunar_calendar.dart';
 
 /// Eye-shape archetypes (the `face` field in the design's LUNI_EMOTIONS map).
 enum LuniEyes { idle, arc, sad, angry, sleepy, curious, wide, oval }
@@ -53,6 +55,8 @@ class LuniFace extends StatefulWidget {
     this.size = 160,
     this.state = LuniFaceState.idle,
     this.dim = false,
+    this.phase,
+    this.noPhase = false,
     this.onTap,
   });
 
@@ -60,6 +64,12 @@ class LuniFace extends StatefulWidget {
   final double size;
   final LuniFaceState state;
   final bool dim;
+
+  /// Override lunar phase 0..1 (null = use tonight's real moon).
+  final double? phase;
+
+  /// Hide the lunar phase shadow on the orb.
+  final bool noPhase;
   final VoidCallback? onTap;
 
   @override
@@ -71,6 +81,7 @@ class _LuniFaceState extends State<LuniFace> with TickerProviderStateMixin {
   late final AnimationController _blink; // 1 = open, 0 = closed
   late final AnimationController _radar;
   late final AnimationController _wave;
+  Timer? _blinkTimer;
   final _rng = math.Random();
 
   Duration get _breatheDur {
@@ -125,7 +136,8 @@ class _LuniFaceState extends State<LuniFace> with TickerProviderStateMixin {
   void _scheduleBlink() {
     if (!mounted || widget.dim) return;
     final next = 2200 + _rng.nextInt(3600);
-    Future.delayed(Duration(milliseconds: next), () async {
+    _blinkTimer?.cancel();
+    _blinkTimer = Timer(Duration(milliseconds: next), () async {
       if (!mounted || widget.dim) return;
       await _blink.reverse(); // close
       if (!mounted) return;
@@ -144,6 +156,7 @@ class _LuniFaceState extends State<LuniFace> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    _blinkTimer?.cancel();
     _breathe.dispose();
     _blink.dispose();
     _radar.dispose();
@@ -157,6 +170,19 @@ class _LuniFaceState extends State<LuniFace> with TickerProviderStateMixin {
     final color = widget.dim ? LuniColors.txFaint : em.color;
     final eyes = widget.dim ? LuniEyes.sleepy : em.eyes;
     final s = widget.size;
+
+    // Robot rule: the eyes (and mouth wave) are ALWAYS cyan — only the glow,
+    // orb tint and accessory glyphs carry the emotion tone. Keeps Luni's gaze
+    // identical to the app icon.
+    final eyeColor = widget.dim ? LuniColors.txFaint : LuniColors.cyan;
+
+    // Luni IS the moon: the orb wears tonight's phase and its glow breathes
+    // with the moon's brightness (rực rỡ ở Rằm, mờ dịu ở Mùng Một).
+    final pVal = widget.phase ?? LuniMoon.today().p;
+    final illum = widget.dim ? 0.0 : (1 - math.cos(2 * math.pi * pVal)) / 2;
+    final showPhase = !widget.dim && !widget.noPhase;
+    final moonF = widget.dim ? 1.0 : (0.45 + 0.55 * illum);
+    final glowInset = widget.dim ? 0.22 : (15 + illum * 13) / 100;
 
     final face = AnimatedBuilder(
       animation: Listenable.merge([_breathe, _blink, _radar, _wave]),
@@ -173,26 +199,27 @@ class _LuniFaceState extends State<LuniFace> with TickerProviderStateMixin {
             clipBehavior: Clip.none,
             alignment: Alignment.center,
             children: [
-              // outer glow
+              // outer glow — inset + opacity scale with the moon's brightness
               Positioned(
-                left: -s * 0.22,
-                top: -s * 0.22,
-                right: -s * 0.22,
-                bottom: -s * 0.22,
+                left: -s * glowInset,
+                top: -s * glowInset,
+                right: -s * glowInset,
+                bottom: -s * glowInset,
                 child: Transform.scale(
                   scale: glowScale,
-                  child: Opacity(
-                    opacity: widget.dim ? 1 : 1,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            hexA(color, widget.dim ? 0.12 : 0.42 * glowOpacity / 0.9),
-                            Colors.transparent,
-                          ],
-                          stops: const [0.0, 0.62],
-                        ),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          hexA(
+                              color,
+                              widget.dim
+                                  ? 0.12
+                                  : 0.42 * moonF * glowOpacity / 0.9),
+                          Colors.transparent,
+                        ],
+                        stops: const [0.0, 0.62],
                       ),
                     ),
                   ),
@@ -240,7 +267,8 @@ class _LuniFaceState extends State<LuniFace> with TickerProviderStateMixin {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: hexA(color, widget.dim ? 0.0 : 0.12),
+                        color: hexA(
+                            color, widget.dim ? 0.0 : (0.05 + 0.14 * illum)),
                         blurRadius: 30,
                         spreadRadius: -4,
                       ),
@@ -277,11 +305,14 @@ class _LuniFaceState extends State<LuniFace> with TickerProviderStateMixin {
                             ),
                           ),
                         ),
-                        // eyes
+                        // phase shadow — the orb shows tonight's lunar phase
+                        if (showPhase)
+                          CustomPaint(painter: _PhaseShadowPainter(pVal)),
+                        // eyes (always cyan)
                         CustomPaint(
                           painter: _EyesPainter(
                             eyes: eyes,
-                            color: color,
+                            color: eyeColor,
                             blink: _blink.value,
                           ),
                         ),
@@ -298,7 +329,7 @@ class _LuniFaceState extends State<LuniFace> with TickerProviderStateMixin {
                 Positioned(
                   bottom: s * 0.14,
                   child: _MouthWave(
-                    color: color,
+                    color: eyeColor,
                     size: s,
                     speaking: widget.state == LuniFaceState.speaking,
                     t: _wave.value,
@@ -441,77 +472,78 @@ class _EyesPainter extends CustomPainter {
       canvas.drawPath(p, paint);
     }
 
-    RRect rr(double x, double y, double w, double h, double r) =>
-        RRect.fromRectAndRadius(Rect.fromLTWH(x, y, w, h), Radius.circular(r));
+    // Chunky rounded-rect eye centered at (cx,cy) — matches the robot display
+    // (EmotionCore). Mirrors `eyeRect()` in the updated luni-face.jsx.
+    const eLx = 33.0, eRx = 67.0, eCy = 50.0; // left/right centers, vertical
+    const eW = 23.0, eH = 27.0, eRX = 7.0; // base chunky eye
+    RRect eyeRect(double cx, double cy, double w, double h, double rx) {
+      final hh = math.max(h, 1.0);
+      final r = math.min(rx, math.min(w / 2, hh / 2));
+      return RRect.fromRectAndRadius(
+          Rect.fromCenter(center: Offset(cx, cy), width: w, height: hh),
+          Radius.circular(r));
+    }
+
+    void fillWithGlow(Path p) {
+      canvas.drawPath(p, glow);
+      canvas.drawPath(p, fill);
+    }
 
     switch (eyes) {
-      case LuniEyes.arc:
+      case LuniEyes.arc: // happy — fat upward smile arcs ⌣ ⌣
         final p = Path()
-          ..moveTo(24, 47)
-          ..quadraticBezierTo(34, 60, 44, 47)
-          ..moveTo(56, 47)
-          ..quadraticBezierTo(66, 60, 76, 47);
-        drawWithGlow(p, stroke(7));
+          ..moveTo(eLx - 11, eCy - 2)
+          ..quadraticBezierTo(eLx, eCy + 12, eLx + 11, eCy - 2)
+          ..moveTo(eRx - 11, eCy - 2)
+          ..quadraticBezierTo(eRx, eCy + 12, eRx + 11, eCy - 2);
+        drawWithGlow(p, stroke(9));
         break;
-      case LuniEyes.sad:
+      case LuniEyes.sad: // downturned arcs ⌢ ⌢
         final p = Path()
-          ..moveTo(24, 56)
-          ..quadraticBezierTo(34, 45, 44, 56)
-          ..moveTo(56, 56)
-          ..quadraticBezierTo(66, 45, 76, 56);
-        drawWithGlow(p, stroke(7));
+          ..moveTo(eLx - 11, eCy + 6)
+          ..quadraticBezierTo(eLx, eCy - 7, eLx + 11, eCy + 6)
+          ..moveTo(eRx - 11, eCy + 6)
+          ..quadraticBezierTo(eRx, eCy - 7, eRx + 11, eCy + 6);
+        drawWithGlow(p, stroke(9));
         break;
-      case LuniEyes.angry:
-        final eyesP = Path()
-          ..addRRect(rr(28, 42, 13, 22, 6))
-          ..addRRect(rr(59, 42, 13, 22, 6));
-        canvas.drawPath(eyesP, glow);
-        canvas.drawPath(eyesP, fill);
+      case LuniEyes.angry: // chunky eyes under slanted brow lids
+        fillWithGlow(Path()
+          ..addRRect(eyeRect(eLx, eCy + 4, eW, 22, eRX))
+          ..addRRect(eyeRect(eRx, eCy + 4, eW, 22, eRX)));
         final brows = Path()
-          ..moveTo(26, 34)
-          ..lineTo(44, 40)
-          ..moveTo(74, 34)
-          ..lineTo(56, 40);
-        drawWithGlow(brows, stroke(6));
+          ..moveTo(eLx - 12, eCy - 16)
+          ..lineTo(eLx + 12, eCy - 9)
+          ..moveTo(eRx + 12, eCy - 16)
+          ..lineTo(eRx - 12, eCy - 9);
+        drawWithGlow(brows, stroke(7));
         break;
-      case LuniEyes.sleepy:
+      case LuniEyes.sleepy: // soft closed eyes — shallow arcs
         final p = Path()
-          ..moveTo(24, 51)
-          ..quadraticBezierTo(34, 56, 44, 51)
-          ..moveTo(56, 51)
-          ..quadraticBezierTo(66, 56, 76, 51);
-        drawWithGlow(p, stroke(6.5));
+          ..moveTo(eLx - 12, eCy)
+          ..quadraticBezierTo(eLx, eCy + 6, eLx + 12, eCy)
+          ..moveTo(eRx - 12, eCy)
+          ..quadraticBezierTo(eRx, eCy + 6, eRx + 12, eCy);
+        drawWithGlow(p, stroke(8));
         break;
-      case LuniEyes.curious:
-        final p = Path()
-          ..addRRect(rr(27, 36, 13, 28, 6.5))
-          ..addOval(Rect.fromCircle(center: const Offset(66, 49), radius: 11));
-        canvas.drawPath(p, glow);
-        canvas.drawPath(p, fill);
+      case LuniEyes.curious: // asymmetric "huh?" — one tall, one squished
+        fillWithGlow(Path()
+          ..addRRect(eyeRect(eLx, eCy, eW, 30, eRX))
+          ..addRRect(eyeRect(eRx, eCy + 2, eW + 2, 17, 8)));
         break;
-      case LuniEyes.wide:
-        final p = Path()
-          ..addOval(Rect.fromCircle(center: const Offset(34, 49), radius: 12.5))
-          ..addOval(Rect.fromCircle(center: const Offset(66, 49), radius: 12.5));
-        canvas.drawPath(p, glow);
-        canvas.drawPath(p, fill);
-        final pupil = Paint()..color = const Color(0xFF0A0C14);
-        canvas.drawCircle(const Offset(34, 49), 4.5, pupil);
-        canvas.drawCircle(const Offset(66, 49), 4.5, pupil);
+      case LuniEyes.wide: // excited / surprised — big chunky eyes, no pupils
+        fillWithGlow(Path()
+          ..addRRect(eyeRect(eLx, eCy, eW + 3, eH + 4, 9))
+          ..addRRect(eyeRect(eRx, eCy, eW + 3, eH + 4, 9)));
         break;
-      case LuniEyes.oval:
-        final p = Path()
-          ..addRRect(rr(27, 42, 14, 16, 7))
-          ..addRRect(rr(59, 42, 14, 16, 7));
-        canvas.drawPath(p, glow);
-        canvas.drawPath(p, fill);
+      case LuniEyes.oval: // calm / cool — relaxed half-lidded chunky rects
+        fillWithGlow(Path()
+          ..addRRect(eyeRect(eLx, eCy, eW, 16, 8))
+          ..addRRect(eyeRect(eRx, eCy, eW, 16, 8)));
         break;
-      case LuniEyes.idle:
-        final p = Path()
-          ..addRRect(rr(28, 36, 13, 28, 6.5))
-          ..addRRect(rr(59, 36, 13, 28, 6.5));
-        canvas.drawPath(p, glow);
-        canvas.drawPath(p, fill);
+      case LuniEyes.idle: // signature chunky rounded-rect eyes
+        fillWithGlow(Path()
+          ..addRRect(eyeRect(eLx, eCy, eW, eH, eRX))
+          ..addRRect(eyeRect(eRx, eCy, eW, eH, eRX)));
         break;
     }
     canvas.restore();
@@ -520,6 +552,55 @@ class _EyesPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _EyesPainter old) =>
       old.eyes != eyes || old.color != color || old.blink != blink;
+}
+
+/// Paints tonight's lunar terminator as a soft dark shadow over the orb, so
+/// Luni "wears" the moon's phase (đổi theo 30 ngày). Port of the SVG phase
+/// mask in `luni-face.jsx`.
+class _PhaseShadowPainter extends CustomPainter {
+  _PhaseShadowPainter(this.p);
+  final double p;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.save();
+    canvas.scale(size.width / 100, size.height / 100);
+
+    const r = 48.0;
+    const c = Offset(50, 50);
+    final cos = math.cos(2 * math.pi * p);
+    final illum = (1 - cos) / 2;
+    final waxing = p < 0.5;
+    final gibbous = illum > 0.5;
+    final rx = r * cos.abs();
+
+    final disc = Path()..addOval(Rect.fromCircle(center: c, radius: r));
+    final semi = Path()
+      ..moveTo(50, 50 - r)
+      ..arcToPoint(const Offset(50, 50 + r),
+          radius: const Radius.circular(r), clockwise: waxing)
+      ..close();
+    final ellipse = Path()
+      ..addOval(Rect.fromCenter(center: c, width: rx * 2, height: r * 2));
+
+    // lit region: gibbous bulges (union), crescent carves (difference)
+    final lit = gibbous
+        ? Path.combine(PathOperation.union, semi, ellipse)
+        : Path.combine(PathOperation.difference, semi, ellipse);
+    final dark = Path.combine(PathOperation.difference, disc, lit);
+
+    canvas.drawPath(
+      dark,
+      Paint()
+        ..color = const Color(0x9905060B) // #05060b @ .6
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.3)
+        ..isAntiAlias = true,
+    );
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _PhaseShadowPainter old) => old.p != p;
 }
 
 /// A tiny mood dot used in lists/headers.

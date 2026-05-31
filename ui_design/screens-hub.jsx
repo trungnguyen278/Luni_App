@@ -40,19 +40,33 @@ function HubScreen({ app }) {
 /* ---------------- Overview ---------------- */
 function OverviewTab({ device, update, setTab }) {
   const d = device;
-  const em = LUNI_EMOTIONS[d.emotion] || LUNI_EMOTIONS.idle;
+  const moon = useLunar();
+  const sp = specialDay(moon);
+  const heroEmotion = (sp && d.online) ? sp.emotion : d.emotion;
+  const em = LUNI_EMOTIONS[heroEmotion] || LUNI_EMOTIONS.idle;
   return (
     <Scroll style={{ padding: '14px 18px 28px' }}>
       {/* hero */}
       <div className="card" style={{ position: 'relative', overflow: 'hidden', padding: '26px 18px 20px', textAlign: 'center', background: `radial-gradient(120% 90% at 50% -10%, ${hexA(em.color, d.online ? .16 : .04)}, var(--bg-1) 60%)`, borderColor: d.online ? hexA(em.color, .22) : 'var(--hairline)' }}>
-        <div style={{ animation: 'floatY 5s ease-in-out infinite' }}><LuniFace emotion={d.emotion} size={150} dim={!d.online} state={d.online ? 'idle' : 'idle'} /></div>
+        <div style={{ animation: 'floatY 5s ease-in-out infinite' }}><LuniFace emotion={heroEmotion} size={150} dim={!d.online} state={d.online ? 'idle' : 'idle'} /></div>
         <div style={{ marginTop: 14, fontSize: 14, color: 'var(--tx-mute)' }}>{d.online ? 'Luni đang cảm thấy' : 'Lần cuối trực tuyến 18 phút trước'}</div>
         {d.online && <div className="t-h2" style={{ marginTop: 2, color: em.color }}>{em.label}</div>}
+        {sp && d.online && (
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 8, padding: '5px 11px', borderRadius: 99, background: hexA(sp.color, 0.14), border: `1px solid ${hexA(sp.color, 0.32)}` }}>
+            <MoonGlyph p={moon.p} size={15} color={sp.color} glow={false} ring={false} />
+            <span style={{ fontSize: 11.5, fontWeight: 700, color: sp.color }}>Tự đổi vì {sp.vi}</span>
+          </div>
+        )}
         <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 16 }}>
           <HeroBtn icon="sliders" label="Điều khiển" onClick={() => setTab('control')} primary />
           <HeroBtn icon="sun" label="Đánh thức" onClick={() => update({ emotion: 'happy' })} />
           <HeroBtn icon="wave" label="Thư giãn" onClick={() => update({ emotion: 'calm' })} />
         </div>
+      </div>
+
+      {/* moon phase — Luni follows the lunar cycle */}
+      <div style={{ marginTop: 14 }}>
+        <MoonCard accent={em.color} />
       </div>
 
       {/* stat grid */}

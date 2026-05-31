@@ -50,6 +50,7 @@ function Phone({ children, bg = 'var(--bg-base)', tint = 'var(--tx)' }) {
         <StatusBar tint={tint} />
         <div style={{ flex: 1, minHeight: 0, position: 'relative', display: 'flex', flexDirection: 'column' }}>
           {children}
+          <ToastHost />
         </div>
         <NavPill tint={tint} />
       </div>
@@ -240,7 +241,34 @@ function Scroll({ children, style }) {
   return <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', ...style }}>{children}</div>;
 }
 
+/* ---------- Global toast bus ---------- */
+/* Any button anywhere can call  window.luniToast('Đã lưu')  to flash feedback.
+   Optional 2nd arg: { icon, color }  e.g. luniToast('Đã xoá', { icon:'trash', color:'var(--red)' }) */
+const _toastBus = new Set();
+window.luniToast = (msg, opts = {}) => { _toastBus.forEach(fn => fn(msg, opts)); };
+
+function ToastHost() {
+  const [t, setT] = useS(null);
+  React.useEffect(() => {
+    const fn = (msg, opts = {}) => setT({ msg, icon: opts.icon || 'check', color: opts.color || 'var(--green)', key: Date.now() });
+    _toastBus.add(fn);
+    return () => _toastBus.delete(fn);
+  }, []);
+  React.useEffect(() => {
+    if (!t) return;
+    const id = setTimeout(() => setT(null), t.dur || 1900);
+    return () => clearTimeout(id);
+  }, [t]);
+  if (!t) return null;
+  return (
+    <div key={t.key} className="glass pop" style={{ position: 'absolute', left: '50%', bottom: 26, transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: 9, padding: '12px 18px', borderRadius: 14, border: '1px solid var(--hairline-2)', zIndex: 80, maxWidth: 'calc(100% - 36px)', boxShadow: 'var(--shadow-pop)' }}>
+      <Icon name={t.icon} size={17} color={t.color} strokeWidth={2.4} />
+      <span style={{ fontSize: 13.5, fontWeight: 600, lineHeight: 1.3 }}>{t.msg}</span>
+    </div>
+  );
+}
+
 Object.assign(window, {
   StatusBar, NavPill, Phone, TopBar, StatusPill, Battery, Ring, Slider, Toggle,
-  TabStrip, Sheet, Section, Row, Scroll, iconBtn,
+  TabStrip, Sheet, Section, Row, Scroll, iconBtn, ToastHost,
 });
