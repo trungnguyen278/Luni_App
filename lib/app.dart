@@ -44,50 +44,89 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
         path: '/register',
-        builder: (context, state) => const RegisterScreen(),
+        builder: (context, state) =>
+            const _BackScope(parent: '/login', child: RegisterScreen()),
       ),
       GoRoute(
         path: '/forgot-password',
-        builder: (context, state) => const ForgotPasswordScreen(),
+        builder: (context, state) =>
+            const _BackScope(parent: '/login', child: ForgotPasswordScreen()),
       ),
       GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
       GoRoute(
         path: '/pairing',
-        builder: (context, state) => const ScanScreen(),
+        builder: (context, state) =>
+            const _BackScope(parent: '/home', child: ScanScreen()),
       ),
       GoRoute(
         path: '/devices/:deviceId',
         builder: (context, state) {
-          return DeviceDetailScreen(
-            deviceId: state.pathParameters['deviceId']!,
+          return _BackScope(
+            parent: '/home',
+            child: DeviceDetailScreen(
+              deviceId: state.pathParameters['deviceId']!,
+            ),
           );
         },
       ),
       GoRoute(
         path: '/devices/:deviceId/sharing',
         builder: (context, state) {
-          return DeviceSharingScreen(
-            deviceId: state.pathParameters['deviceId']!,
+          final deviceId = state.pathParameters['deviceId']!;
+          return _BackScope(
+            parent: '/devices/$deviceId',
+            child: DeviceSharingScreen(deviceId: deviceId),
           );
         },
       ),
       GoRoute(
         path: '/devices/:deviceId/admin-ble',
         builder: (context, state) {
-          return AdminBleScreen(deviceId: state.pathParameters['deviceId']!);
+          final deviceId = state.pathParameters['deviceId']!;
+          return _BackScope(
+            parent: '/devices/$deviceId',
+            child: AdminBleScreen(deviceId: deviceId),
+          );
         },
       ),
       GoRoute(
         path: '/settings',
-        builder: (context, state) => const AppSettingsScreen(),
+        builder: (context, state) =>
+            const _BackScope(parent: '/home', child: AppSettingsScreen()),
       ),
       GoRoute(
         path: '/profile',
-        builder: (context, state) => const ProfileScreen(),
+        builder: (context, state) =>
+            const _BackScope(parent: '/home', child: ProfileScreen()),
       ),
     ],
   );
 });
+
+/// Routes the Android system back button to a screen's logical parent.
+///
+/// Every in-app navigation uses `context.go()`, which replaces the router
+/// stack — so without this the system back button (or back gesture) would find
+/// an empty history and exit the app from any screen. [PopScope] intercepts the
+/// pop and redirects to [parent], mirroring each screen's `LuniAppBar.onBack`.
+/// Root screens (`/login`, `/home`) don't wrap, so back there still exits.
+class _BackScope extends StatelessWidget {
+  const _BackScope({required this.parent, required this.child});
+
+  final String parent;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) context.go(parent);
+      },
+      child: child,
+    );
+  }
+}
 
 class LuniApp extends ConsumerWidget {
   const LuniApp({super.key});

@@ -59,6 +59,27 @@ adb -s <serial> shell input swipe <x1> <y1> <x2> <y2> <ms>
 
 Package id: `com.example.luni_app`.
 
+## Tài khoản test
+
+Hai tài khoản seed sẵn trong DB Cloud (mật khẩu chung: `luni2026`):
+
+| Vai trò | Email             | Mật khẩu   | Dùng cho                       |
+| ------- | ----------------- | ---------- | ------------------------------ |
+| User    | `test@example.com`| `luni2026` | App quản lý robot              |
+| Admin   | `admin@luni.vn`   | `luni2026` | Bảng dịch vụ kỹ thuật (web)    |
+
+> Trước đây hai tài khoản này hiện trong màn đăng nhập dưới dạng nút "Tài khoản demo".
+> Đã gỡ khỏi UI — nhập email/mật khẩu thủ công khi cần. Email khớp `admin|service|@luni.`
+> sẽ tự đổi nút sang chế độ Admin (xem `_looksAdmin` trong `login_screen.dart`).
+>
+> Đặt lại mật khẩu khi cần (chạy ở máy có Docker stack Luni Cloud):
+>
+> ```bash
+> hash=$(docker exec luni-api python -c "from app.core.security import hash_password; print(hash_password('luni2026'))")
+> docker exec luni-db psql -U luni -d luni \
+>   -c "UPDATE users SET password='$hash' WHERE email='test@example.com';"
+> ```
+
 ## Test
 
 ```bash
