@@ -15,8 +15,16 @@ function HubScreen({ app }) {
   const [tab, setTab] = useS('overview');
   const em = LUNI_EMOTIONS[device.emotion] || LUNI_EMOTIONS.idle;
 
+  const caps = device.caps || {};
+  const hasMotion = !!(caps.camera || caps.legMotors || caps.armMotors);
+  const tabs = React.useMemo(() => {
+    const base = [...HUB_TABS];
+    if (hasMotion) base.splice(2, 0, { id: 'motion', label: 'Vận động', icon: 'walk' });
+    return base;
+  }, [hasMotion]);
+
   const Tabs = {
-    overview: OverviewTab, control: window.ControlTab,
+    overview: OverviewTab, control: window.ControlTab, motion: window.MotionTab,
     history: window.ConversationTab, stats: window.StatsTab, ota: window.OtaTab, settings: window.DeviceSettingsTab,
   };
   const Active = Tabs[tab] || OverviewTab;
@@ -29,7 +37,7 @@ function HubScreen({ app }) {
         onBack={goHome}
         right={<button className="press" onClick={() => setTab('settings')} style={iconBtn}><Icon name="gear" size={21} /></button>}
       />
-      <TabStrip tabs={HUB_TABS} active={tab} onSelect={setTab} />
+      <TabStrip tabs={tabs} active={tab} onSelect={setTab} />
       <div className="screen-anim" key={tab} style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         <Active app={app} device={device} update={updateDevice} setTab={setTab} />
       </div>

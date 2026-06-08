@@ -63,6 +63,20 @@ const LUNI_ICON_PATHS = {
   qr:      '<rect x="3.5" y="3.5" width="6" height="6" rx="1"/><rect x="14.5" y="3.5" width="6" height="6" rx="1"/><rect x="3.5" y="14.5" width="6" height="6" rx="1"/><path d="M14.5 14.5h3v3M20.5 17.5v3h-3M17.5 20.5h0"/>',
   speaker: '<rect x="6" y="3" width="12" height="18" rx="3"/><circle cx="12" cy="14" r="3.5"/><circle cx="12" cy="7" r="1.2"/>',
   flag:    '<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',
+  // motion robot variant — camera + motors
+  camera:  '<path d="M3 8.5A2 2 0 015 6.5h2L8.2 4.7A1 1 0 019 4.2h6a1 1 0 01.8.5L17 6.5h2a2 2 0 012 2V18a2 2 0 01-2 2H5a2 2 0 01-2-2V8.5z"/><circle cx="12" cy="13" r="3.6"/>',
+  flash:   '<path d="M13 2L5 13h5l-1 9 8-12h-5l1-8z"/>',
+  image:   '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="8.3" cy="9.3" r="1.6"/><path d="M4.5 17l4.5-4.5 3 3 3.5-4 4 4.5"/>',
+  arrowUp:    '<path d="M12 19V6M6 12l6-6 6 6"/>',
+  arrowDown:  '<path d="M12 5v13M6 12l6 6 6-6"/>',
+  arrowLeft:  '<path d="M19 12H6M12 6l-6 6 6 6"/>',
+  arrowRight: '<path d="M5 12h13M12 6l6 6-6 6"/>',
+  stop:    '<rect x="6" y="6" width="12" height="12" rx="3"/>',
+  hand:    '<path d="M8 11.5V6a1.6 1.6 0 013.2 0v4.5M11.2 10.5V4.6a1.6 1.6 0 013.2 0v6M14.4 11V7a1.6 1.6 0 013.2 0v6.5a6 6 0 01-6 6 6 6 0 01-5.2-3l-2-3.4a1.6 1.6 0 012.6-1.8l1.2 1.4"/>',
+  walk:    '<circle cx="13" cy="4" r="2"/><path d="M9.5 9.5l3.5-1 2 3 3 1"/><path d="M13 8l-1.2 5.2L13.6 18"/><path d="M11.8 13.2L8.5 18"/>',
+  gauge:   '<path d="M4.5 18a7.5 7.5 0 1115 0"/><path d="M12 14l3.5-3"/><circle cx="12" cy="18" r="1"/>',
+  temp:    '<path d="M10 13.5V5a2 2 0 014 0v8.5a4 4 0 11-4 0z"/><path d="M12 9v5"/>',
+  motor:   '<rect x="3" y="8" width="12" height="8" rx="2.2"/><path d="M15 10.5h2.2a2 2 0 010 4H15"/><path d="M6 8V5.8M10 8V5.8M6 16v2.2M10 16v2.2"/>',
 };
 
 function Icon({ name, size = 20, color = 'currentColor', strokeWidth = 1.7, style }) {

@@ -2,8 +2,9 @@
    Luni App — root router & state
    ============================================================ */
 const SEED_DEVICES = [
-  { id: 'AA:BB:CC:DD:EE:01', name: 'Luni Phòng khách', location: 'Phòng khách', city: 'Hà Nội', model: 'luni_v2_s3c5', fwVersion: '2.1.0', online: true, batteryPercent: 84, charging: false, rssi: -42, emotion: 'happy', scene: 'weather', config: { volume: 62, brightness: 92, logLevel: 'info', autoOta: false } },
-  { id: 'AA:BB:CC:DD:EE:02', name: 'Luni Bàn làm việc', location: 'Góc làm việc', city: 'Hồ Chí Minh', model: 'luni_v2_s3c5', fwVersion: '2.0.4', online: false, batteryPercent: 31, charging: true, rssi: -67, emotion: 'sleepy', scene: 'sleep', config: { volume: 45, brightness: 70, logLevel: 'warn', autoOta: true } },
+  { id: 'AA:BB:CC:DD:EE:01', name: 'Luni Phòng khách', location: 'Phòng khách', city: 'Hà Nội', model: 'luni_v2_s3c5', fwVersion: '2.1.0', online: true, batteryPercent: 84, charging: false, rssi: -42, emotion: 'happy', scene: 'weather', caps: { camera: false, legMotors: 0, armMotors: 0 }, config: { volume: 62, brightness: 92, logLevel: 'info', autoOta: false } },
+  { id: 'AA:BB:CC:DD:EE:02', name: 'Luni Bàn làm việc', location: 'Góc làm việc', city: 'Hồ Chí Minh', model: 'luni_v2_s3c5', fwVersion: '2.0.4', online: false, batteryPercent: 31, charging: true, rssi: -67, emotion: 'sleepy', scene: 'sleep', caps: { camera: false, legMotors: 0, armMotors: 0 }, config: { volume: 45, brightness: 70, logLevel: 'warn', autoOta: true } },
+  { id: 'AA:BB:CC:DD:EE:03', name: 'Luni Bước Đi', location: 'Phòng bé', city: 'Đà Nẵng', model: 'luni_v3_walk_cam', fwVersion: '3.0.1', online: true, batteryPercent: 67, charging: false, rssi: -51, emotion: 'curious', scene: 'home', caps: { camera: true, legMotors: 4, armMotors: 2 }, config: { volume: 55, brightness: 88, logLevel: 'info', autoOta: false, moveSpeed: 55, armL: 18, armR: 18 } },
 ];
 
 function LuniApp() {
