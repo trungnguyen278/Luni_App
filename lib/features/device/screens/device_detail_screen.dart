@@ -13,6 +13,7 @@ import '../../../shared/widgets/luni_toast.dart';
 import '../../../shared/widgets/moon_glyph.dart';
 import '../../chat/screens/chat_screen.dart';
 import '../../logs/screens/log_viewer_screen.dart';
+import '../../motion/screens/motion_screen.dart';
 import '../../ota/screens/ota_screen.dart';
 import '../../stats/screens/stats_screen.dart';
 import '../providers/device_detail_notifier.dart';
@@ -22,6 +23,7 @@ import 'device_settings_screen.dart';
 const _hubTabs = [
   LuniTab('overview', 'grid', 'Tổng quan'),
   LuniTab('control', 'sliders', 'Điều khiển'),
+  LuniTab('motion', 'walk', 'Vận động'),
   LuniTab('history', 'chat', 'Trò chuyện'),
   LuniTab('stats', 'chart', 'Thống kê'),
   LuniTab('ota', 'download', 'Cập nhật'),
@@ -111,6 +113,8 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen> {
     switch (_tab) {
       case 'control':
         return _ControlTab(device: device);
+      case 'motion':
+        return MotionScreen(device: device);
       case 'history':
         return ChatScreen(deviceId: device.id);
       case 'stats':

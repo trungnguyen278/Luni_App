@@ -109,6 +109,23 @@ class LuniIcons {
         '<rect x="3" y="6.5" width="18" height="13" rx="2.5"/><circle cx="12" cy="13" r="3.5"/><path d="M8 6.5l1.5-2.5h5L16 6.5"/>',
     'image':
         '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="2"/><path d="M5 18.5l5-4.5 3.5 3 3-2.5 3 3.5"/>',
+    // motion robot variant — camera + leg/arm motors
+    'flash': '<path d="M13 2L5 13h5l-1 9 8-12h-5l1-8z"/>',
+    'arrowUp': '<path d="M12 19V6M6 12l6-6 6 6"/>',
+    'arrowDown': '<path d="M12 5v13M6 12l6 6 6-6"/>',
+    'arrowLeft': '<path d="M19 12H6M12 6l-6 6 6 6"/>',
+    'arrowRight': '<path d="M5 12h13M12 6l6 6-6 6"/>',
+    'stop': '<rect x="6" y="6" width="12" height="12" rx="3"/>',
+    'hand':
+        '<path d="M8 11.5V6a1.6 1.6 0 013.2 0v4.5M11.2 10.5V4.6a1.6 1.6 0 013.2 0v6M14.4 11V7a1.6 1.6 0 013.2 0v6.5a6 6 0 01-6 6 6 6 0 01-5.2-3l-2-3.4a1.6 1.6 0 012.6-1.8l1.2 1.4"/>',
+    'walk':
+        '<circle cx="13" cy="4" r="2"/><path d="M9.5 9.5l3.5-1 2 3 3 1"/><path d="M13 8l-1.2 5.2L13.6 18"/><path d="M11.8 13.2L8.5 18"/>',
+    'gauge':
+        '<path d="M4.5 18a7.5 7.5 0 1115 0"/><path d="M12 14l3.5-3"/><circle cx="12" cy="18" r="1"/>',
+    'temp':
+        '<path d="M10 13.5V5a2 2 0 014 0v8.5a4 4 0 11-4 0z"/><path d="M12 9v5"/>',
+    'motor':
+        '<rect x="3" y="8" width="12" height="8" rx="2.2"/><path d="M15 10.5h2.2a2 2 0 010 4H15"/><path d="M6 8V5.8M10 8V5.8M6 16v2.2M10 16v2.2"/>',
   };
 
   static String hex(Color c) =>
