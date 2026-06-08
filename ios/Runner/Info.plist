@@ -4,6 +4,12 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Luni cần Bluetooth để tìm và kết nối với robot của bạn.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>Luni cần Bluetooth để tìm và kết nối với robot của bạn.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Luni cần quyền vị trí để quét các thiết bị Bluetooth ở gần.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>

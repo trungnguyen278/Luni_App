@@ -168,7 +168,9 @@ class PairingNotifier extends Notifier<PairingState> {
       onError: (Object e) {
         state = state.copyWith(
           stage: PairingStage.error,
-          error: 'Không quét được BLE: $e',
+          error: e is BleScanPermissionDenied
+              ? e.toString()
+              : 'Không quét được BLE: $e',
         );
       },
     );

@@ -8,6 +8,15 @@ final bleScannerProvider = Provider<BleScanner>((ref) {
   return BleScanner();
 });
 
+/// Ném ra khi người dùng chưa cấp quyền Bluetooth/Vị trí cần để quét BLE.
+class BleScanPermissionDenied implements Exception {
+  const BleScanPermissionDenied();
+
+  @override
+  String toString() =>
+      'Chưa được cấp quyền Bluetooth/Vị trí. Vào Cài đặt > Ứng dụng để bật quyền rồi thử lại.';
+}
+
 class BleScanDevice {
   const BleScanDevice({
     required this.id,
@@ -58,8 +67,7 @@ class BleScanner {
   Stream<List<BleScanDevice>> scan({Duration timeout = const Duration(seconds: 10)}) async* {
     final hasPermission = await requestPermissions();
     if (!hasPermission) {
-      yield [];
-      return;
+      throw const BleScanPermissionDenied();
     }
 
     final adapterState = await FlutterBluePlus.adapterState.first;
