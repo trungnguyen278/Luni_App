@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/bluetooth/ble_connector.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/config/theme.dart';
 import '../../../shared/widgets/luni_app_bar.dart';
@@ -144,6 +145,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> {
         );
       case PairingStage.wifiSetup:
         return _WifiForm(
+          networks: state.availableNetworks,
           ssidController: _ssidController,
           passwordController: _passwordController,
           onSsidSelected: (ssid) => _ssidController.text = ssid,
@@ -235,12 +237,14 @@ class _PinForm extends StatelessWidget {
 
 class _WifiForm extends StatelessWidget {
   const _WifiForm({
+    required this.networks,
     required this.ssidController,
     required this.passwordController,
     required this.onSsidSelected,
     required this.onSubmit,
   });
 
+  final List<WifiNetwork> networks;
   final TextEditingController ssidController;
   final TextEditingController passwordController;
   final ValueChanged<String> onSsidSelected;
@@ -253,7 +257,7 @@ class _WifiForm extends StatelessWidget {
       children: [
         const SectionLabel('Mạng khả dụng',
             padding: EdgeInsets.fromLTRB(4, 0, 4, 10)),
-        WifiNetworkList(onSelected: onSsidSelected),
+        WifiNetworkList(networks: networks, onSelected: onSsidSelected),
         const SizedBox(height: 14),
         LabeledField(
           label: 'SSID',

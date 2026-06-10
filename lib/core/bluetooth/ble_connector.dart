@@ -46,16 +46,52 @@ class BleConnector {
 
   Future<bool> unlockWithPin(String pin) async {
     _ensureConnected();
-    final char = _findCharacteristic(BleProtocol.authUnlock);
-    await char.write(utf8.encode(pin), withoutResponse: false);
+    final authChar = _findCharacteristic(BleProtocol.authUnlock);
+    final resultChar = _findCharacteristic(BleProtocol.command);
 
-    await Future<void>.delayed(const Duration(milliseconds: 200));
+    // Firmware delivers the PIN result via notifyCommandResult(), which notifies
+    // on the COMMAND characteristic (0x0011) — NOT the auth char we write to.
+    // Subscribe there before writing the PIN to avoid missing the notify.
+    await resultChar.setNotifyValue(true);
+    final result = resultChar.onValueReceived
+        .first
+        .timeout(const Duration(seconds: 5), onTimeout: () => [0x01]);
 
-    final response = await char.read();
-    if (response.isNotEmpty && response.first == 0x00) {
-      return true;
+    await authChar.write(utf8.encode(pin), withoutResponse: false);
+
+    final response = await result;
+    await resultChar.setNotifyValue(false);
+
+    return response.isNotEmpty && response.first == 0x00;
+  }
+
+  /// Reads the WiFi networks the robot scanned at boot. Requires Level 1
+  /// (call after [unlockWithPin]). Returns an empty list if the firmware
+  /// predates the wifi-scan characteristic or the read fails, so the UI can
+  /// fall back to manual SSID entry.
+  Future<List<WifiNetwork>> readWifiNetworks() async {
+    _ensureConnected();
+    try {
+      final char = _findCharacteristic(BleProtocol.wifiScan);
+      final raw = await char.read();
+      if (raw.isEmpty) return const [];
+      final decoded = jsonDecode(utf8.decode(raw));
+      if (decoded is! List) return const [];
+      final seen = <String>{};
+      final result = <WifiNetwork>[];
+      for (final entry in decoded) {
+        if (entry is! Map) continue;
+        final ssid = (entry['ssid'] as String? ?? '').trim();
+        if (ssid.isEmpty || !seen.add(ssid)) continue;
+        result.add(WifiNetwork(
+          ssid: ssid,
+          rssi: (entry['rssi'] as num?)?.toInt() ?? -99,
+        ));
+      }
+      return result;
+    } catch (_) {
+      return const [];
     }
-    return false;
   }
 
   Future<void> writeWifi({
@@ -96,11 +132,20 @@ class BleConnector {
 
   Future<bool> adminAuth(List<int> hmacToken) async {
     _ensureConnected();
-    final char = _findCharacteristic(BleProtocol.adminAuth);
-    await char.write(hmacToken, withoutResponse: false);
+    final adminChar = _findCharacteristic(BleProtocol.adminAuth);
+    final resultChar = _findCharacteristic(BleProtocol.command);
 
-    await Future<void>.delayed(const Duration(milliseconds: 200));
-    final response = await char.read();
+    // Result delivered via notifyCommandResult() on the COMMAND characteristic.
+    await resultChar.setNotifyValue(true);
+    final result = resultChar.onValueReceived
+        .first
+        .timeout(const Duration(seconds: 5), onTimeout: () => [0x01]);
+
+    await adminChar.write(hmacToken, withoutResponse: false);
+
+    final response = await result;
+    await resultChar.setNotifyValue(false);
+
     return response.isNotEmpty && response.first == 0x00;
   }
 
@@ -117,12 +162,18 @@ class BleConnector {
 
     await char.setNotifyValue(true);
 
+    // Subscribe BEFORE writing: the firmware notifies the result before it
+    // returns the write response, so a listener attached after the write can
+    // miss the notification and time out.
+    final result = char.onValueReceived
+        .first
+        .timeout(const Duration(seconds: 5), onTimeout: () => <int>[]);
+
     await char.write([command], withoutResponse: false);
 
-    final response = await char.onValueReceived
-        .first
-        .timeout(const Duration(seconds: 5), onTimeout: () => [0x01]);
-
+    var response = await result;
+    // Fallback: if the stream raced, the notify value is still buffered here.
+    if (response.isEmpty && char.lastValue.isNotEmpty) response = char.lastValue;
     await char.setNotifyValue(false);
 
     return response.isNotEmpty ? response.first : 0x01;
@@ -139,24 +190,42 @@ class BleConnector {
     final char = _findCharacteristic(BleProtocol.commit);
 
     await char.setNotifyValue(true);
+
+    // Subscribe BEFORE writing — the firmware sends the commit-result notify
+    // before returning the write response, so attaching the listener after the
+    // write races and can miss the 0x00 result (shows "robot không lưu được").
+    final result = char.onValueReceived
+        .first
+        .timeout(const Duration(seconds: 5), onTimeout: () => <int>[]);
+
     await char.write([0x01], withoutResponse: false);
 
-    final response = await char.onValueReceived
-        .first
-        .timeout(const Duration(seconds: 5), onTimeout: () => [0x01]);
-
+    var response = await result;
+    // Fallback: if the stream raced, the notify value is still buffered here.
+    if (response.isEmpty && char.lastValue.isNotEmpty) response = char.lastValue;
     await char.setNotifyValue(false);
 
     return response.isNotEmpty && response.first == 0x00;
   }
 
   Future<void> restart() async {
-    await sendCommand(BleProtocol.restartCommand);
+    // The firmware reboots inside the RESTART command handler (esp_restart never
+    // returns), so the write never gets a response and the link drops mid-call.
+    // The command IS delivered and acted on — swallow the resulting GATT error.
+    try {
+      await sendCommand(BleProtocol.restartCommand);
+    } catch (_) {
+      // Expected: device rebooted and dropped the BLE link.
+    }
   }
 
   Future<void> disconnect() async {
     if (_device != null) {
-      await _device!.disconnect();
+      try {
+        await _device!.disconnect();
+      } catch (_) {
+        // Link may already be gone (e.g. after a device reboot) — ignore.
+      }
       _device = null;
       _luniService = null;
     }
@@ -187,4 +256,11 @@ class BleException implements Exception {
 
   @override
   String toString() => 'BleException: $message';
+}
+
+class WifiNetwork {
+  const WifiNetwork({required this.ssid, required this.rssi});
+
+  final String ssid;
+  final int rssi;
 }

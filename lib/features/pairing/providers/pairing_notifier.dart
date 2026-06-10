@@ -72,6 +72,7 @@ class PairingState {
   const PairingState({
     required this.stage,
     required this.nearbyDevices,
+    this.availableNetworks = const [],
     this.selectedDevice,
     this.deviceInfo,
     this.ssid,
@@ -84,6 +85,7 @@ class PairingState {
 
   final PairingStage stage;
   final List<BleScanDevice> nearbyDevices;
+  final List<WifiNetwork> availableNetworks;
   final BleScanDevice? selectedDevice;
   final DeviceBleInfo? deviceInfo;
   final String? ssid;
@@ -111,6 +113,7 @@ class PairingState {
   PairingState copyWith({
     PairingStage? stage,
     List<BleScanDevice>? nearbyDevices,
+    List<WifiNetwork>? availableNetworks,
     BleScanDevice? selectedDevice,
     DeviceBleInfo? deviceInfo,
     String? ssid,
@@ -123,6 +126,7 @@ class PairingState {
     return PairingState(
       stage: stage ?? this.stage,
       nearbyDevices: nearbyDevices ?? this.nearbyDevices,
+      availableNetworks: availableNetworks ?? this.availableNetworks,
       selectedDevice: selectedDevice ?? this.selectedDevice,
       deviceInfo: deviceInfo ?? this.deviceInfo,
       ssid: ssid ?? this.ssid,
@@ -226,7 +230,14 @@ class PairingNotifier extends Notifier<PairingState> {
         );
         return;
       }
-      state = state.copyWith(stage: PairingStage.wifiSetup, pinAttempts: 0);
+      // Pull the robot's scanned WiFi list (Level 1). Falls back to an empty
+      // list — and manual SSID entry — on older firmware or read failure.
+      final networks = await _connector.readWifiNetworks();
+      state = state.copyWith(
+        stage: PairingStage.wifiSetup,
+        pinAttempts: 0,
+        availableNetworks: networks,
+      );
     } on BleException catch (e) {
       state = state.copyWith(stage: PairingStage.error, error: e.message);
     }

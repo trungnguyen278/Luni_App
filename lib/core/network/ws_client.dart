@@ -36,6 +36,7 @@ enum DeviceWsEventType {
   battery,
   interactionResult,
   currentState,
+  cameraFrame,
   log,
   unknown,
 }
@@ -77,6 +78,8 @@ class DeviceWsEvent {
         return DeviceWsEventType.interactionResult;
       case 'current_state':
         return DeviceWsEventType.currentState;
+      case 'camera_frame':
+        return DeviceWsEventType.cameraFrame;
       case 'log':
         return DeviceWsEventType.log;
       default:

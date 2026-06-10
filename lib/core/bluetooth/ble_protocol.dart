@@ -8,6 +8,7 @@ class BleProtocol {
   static const wsUrl = '00000003-0000-1000-8000-00805f9b34fb';
   static const commit = '00000004-0000-1000-8000-00805f9b34fb';
   static const deviceToken = '00000008-0000-1000-8000-00805f9b34fb';
+  static const wifiScan = '00000009-0000-1000-8000-00805f9b34fb';
   static const userId = '00000005-0000-1000-8000-00805f9b34fb';
   static const deviceInfo = '00000006-0000-1000-8000-00805f9b34fb';
   static const diagInfo = '00000007-0000-1000-8000-00805f9b34fb';

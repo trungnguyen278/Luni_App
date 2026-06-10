@@ -17,7 +17,7 @@ final authControllerProvider = NotifierProvider<AuthController, AuthState>(
   AuthController.new,
 );
 
-enum AuthStatus { unauthenticated, authenticating, authenticated }
+enum AuthStatus { unknown, unauthenticated, authenticating, authenticated }
 
 class AuthState {
   const AuthState({
@@ -27,6 +27,8 @@ class AuthState {
     this.refreshToken,
     this.error,
   });
+
+  const AuthState.unknown() : this(status: AuthStatus.unknown);
 
   const AuthState.unauthenticated({String? error})
     : this(status: AuthStatus.unauthenticated, error: error);
@@ -54,12 +56,20 @@ class AuthState {
       status == AuthStatus.authenticated && user != null;
 
   bool get isLoading => status == AuthStatus.authenticating;
+
+  /// True until the stored session has been checked on launch — the router
+  /// shows a splash instead of flashing the login screen for remembered users.
+  bool get isRestoring => status == AuthStatus.unknown;
 }
 
 class AuthController extends Notifier<AuthState> {
   @override
   AuthState build() {
-    return const AuthState.unauthenticated();
+    // Restore a remembered session on first launch. Tokens live in secure
+    // storage (written by [_applyTokenResponse]); the router holds on a splash
+    // while status is `unknown`.
+    Future.microtask(tryRestoreSession);
+    return const AuthState.unknown();
   }
 
   Future<void> signIn({required String email, required String password}) async {
@@ -117,35 +127,94 @@ class AuthController extends Notifier<AuthState> {
     }
   }
 
+  /// Restore a remembered login from secure storage. Always resolves the state
+  /// to a terminal value (`authenticated` or `unauthenticated`) so the launch
+  /// splash never hangs.
   Future<void> tryRestoreSession() async {
+    String? accessToken;
+    String? refreshToken;
     try {
       final storage = ref.read(secureStorageProvider);
-      final accessToken = await storage
+      accessToken = await storage
           .read(key: 'access_token')
-          .timeout(const Duration(milliseconds: 300));
-      final refreshToken = await storage
+          .timeout(const Duration(milliseconds: 500));
+      refreshToken = await storage
           .read(key: 'refresh_token')
-          .timeout(const Duration(milliseconds: 300));
+          .timeout(const Duration(milliseconds: 500));
+    } catch (_) {
+      // Secure storage unavailable (e.g. widget tests / early desktop shells).
+    }
 
-      if (accessToken == null || refreshToken == null) return;
+    if (refreshToken == null || refreshToken.isEmpty) {
+      state = const AuthState.unauthenticated();
+      return;
+    }
 
-      final response = await _authDio().get<Map<String, Object?>>(
-        '/auth/me',
-        options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
-      );
-
-      final userJson = response.data?['user'] ?? response.data;
-      if (userJson is Map<String, Object?>) {
-        final user = User.fromJson(userJson);
+    // 1) Try the stored access token directly.
+    if (accessToken != null && accessToken.isNotEmpty) {
+      final user = await _fetchMe(accessToken);
+      if (user != null) {
         state = AuthState.authenticated(
           user: user,
           accessToken: accessToken,
           refreshToken: refreshToken,
         );
+        return;
+      }
+    }
+
+    // 2) Access token missing or expired → refresh, then retry.
+    final newAccess = await _refreshWithToken(refreshToken);
+    if (newAccess != null) {
+      final user = await _fetchMe(newAccess);
+      if (user != null) {
+        state = AuthState.authenticated(
+          user: user,
+          accessToken: newAccess,
+          refreshToken: refreshToken,
+        );
+        return;
+      }
+    }
+
+    // Stored session is no longer valid — clear it and require re-login.
+    await signOut();
+  }
+
+  /// Fetch the current user with [accessToken]. Returns null on any failure
+  /// (rejected token, network error, malformed body).
+  Future<User?> _fetchMe(String accessToken) async {
+    try {
+      final response = await _authDio().get<Map<String, Object?>>(
+        '/auth/me',
+        options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
+      );
+      final userJson = response.data?['user'] ?? response.data;
+      if (userJson is Map<String, Object?>) {
+        return User.fromJson(userJson);
       }
     } catch (_) {
-      // no stored session or expired
+      // Token rejected or network error.
     }
+    return null;
+  }
+
+  /// Exchange [refreshToken] for a fresh access token (persisted on success).
+  Future<String?> _refreshWithToken(String refreshToken) async {
+    try {
+      final response = await _authDio().post<Map<String, Object?>>(
+        '/auth/refresh',
+        data: {'refresh_token': refreshToken},
+      );
+      final newAccess = response.data?['access_token'] as String?;
+      if (newAccess != null && newAccess.isNotEmpty) {
+        await _writeToken('access_token', newAccess);
+        return newAccess;
+      }
+    } catch (_) {
+      // Refresh token expired/revoked.
+    }
+    return null;
   }
 
   Future<void> signOut() async {

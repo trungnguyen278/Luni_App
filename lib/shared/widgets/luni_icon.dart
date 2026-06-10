@@ -110,7 +110,6 @@ class LuniIcons {
     'image':
         '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="2"/><path d="M5 18.5l5-4.5 3.5 3 3-2.5 3 3.5"/>',
     // motion robot variant — camera + leg/arm motors
-    'flash': '<path d="M13 2L5 13h5l-1 9 8-12h-5l1-8z"/>',
     'arrowUp': '<path d="M12 19V6M6 12l6-6 6 6"/>',
     'arrowDown': '<path d="M12 5v13M6 12l6 6 6-6"/>',
     'arrowLeft': '<path d="M19 12H6M12 6l-6 6 6 6"/>',

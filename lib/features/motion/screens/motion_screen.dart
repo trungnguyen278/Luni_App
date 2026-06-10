@@ -1,8 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/theme.dart';
+import '../../../core/network/ws_client.dart';
 import '../../../shared/models/device.dart';
 import '../../../shared/widgets/luni_kit.dart';
 import '../../../shared/widgets/luni_toast.dart';
@@ -54,48 +58,84 @@ const List<_MotorMeta> _motorMeta = [
 const List<int> _motorTemp = [38, 36, 39, 37, 34, 35]; // °C seed per motor
 
 class _Shot {
-  const _Shot(this.id, this.time, this.tone);
+  const _Shot(this.id, this.time, this.tone, {this.bytes});
   final int id;
   final String time;
   final Color tone;
+
+  /// Real JPEG relayed from the robot via the `camera_frame` WS event. Null for
+  /// the seeded history placeholders, which fall back to the striped frame.
+  final Uint8List? bytes;
 }
 
-class MotionScreen extends StatefulWidget {
+class MotionScreen extends ConsumerStatefulWidget {
   const MotionScreen({required this.device, super.key});
 
   final Device device;
 
   @override
-  State<MotionScreen> createState() => _MotionScreenState();
+  ConsumerState<MotionScreen> createState() => _MotionScreenState();
 }
 
-class _MotionScreenState extends State<MotionScreen> {
+class _MotionScreenState extends ConsumerState<MotionScreen> {
   String _dir = 'stop';
-  bool _flash = false;
-  String _flashMode = 'auto'; // off | auto | on
   int _timer = 0; // 0 | 3 | 10 (s)
   int _moveSpeed = 55;
   int _armL = 18;
   int _armR = 18;
-  int _counter = 4;
-  Timer? _flashTimer;
+  int _counter = 1;
   Timer? _captureTimer;
+  StreamSubscription<DeviceWsEvent>? _wsSub;
 
-  List<_Shot> _shots = const [
-    _Shot(3, '12:02', LuniColors.warm),
-    _Shot(2, '11:47', LuniColors.blue),
-    _Shot(1, '09:30', LuniColors.green),
-  ];
+  // Real captures only — filled from the robot's `camera_frame` WS events.
+  List<_Shot> _shots = const [];
 
   bool get _off => !widget.device.isOnline;
   bool get _moving => _dir != 'stop';
   List<int> get _legAngles => _legPose[_dir] ?? _legPose['stop']!;
 
   @override
+  void initState() {
+    super.initState();
+    // The robot's reply to camera_capture comes back as a `camera_frame` event
+    // (base64 JPEG) relayed by the server — see ws_manager.handle_image_uplink.
+    final ws = ref.read(activeDeviceWsProvider(widget.device.id));
+    _wsSub = ws.statusStream(widget.device.id).listen(_onWsEvent);
+  }
+
+  @override
   void dispose() {
-    _flashTimer?.cancel();
+    _wsSub?.cancel();
     _captureTimer?.cancel();
     super.dispose();
+  }
+
+  void _onWsEvent(DeviceWsEvent event) {
+    if (event.type != DeviceWsEventType.cameraFrame) return;
+    final data = event.payload['data'];
+    if (data is! String || data.isEmpty) return;
+    final Uint8List bytes;
+    try {
+      bytes = base64Decode(data);
+    } on FormatException {
+      return;
+    }
+    if (bytes.isEmpty || !mounted) return;
+    final id = _counter++;
+    const tones = [
+      LuniColors.cyan,
+      LuniColors.rose,
+      LuniColors.warm,
+      LuniColors.green,
+      LuniColors.purple,
+      LuniColors.orange,
+    ];
+    setState(() {
+      _shots = [_Shot(id, 'vừa xong', tones[id % tones.length], bytes: bytes), ..._shots]
+          .take(12)
+          .toList();
+    });
+    luniToast(context, 'Đã chụp 1 ảnh', icon: 'camera', color: LuniColors.cyan);
   }
 
   void _drive(String nd) {
@@ -110,29 +150,16 @@ class _MotionScreenState extends State<MotionScreen> {
 
   void _capture() {
     if (_off) return;
-    if (_flashMode != 'off') {
-      setState(() => _flash = true);
-      _flashTimer?.cancel();
-      _flashTimer = Timer(const Duration(milliseconds: 320),
-          () => mounted ? setState(() => _flash = false) : null);
-    }
     void fire() {
       if (!mounted) return;
-      final id = _counter++;
-      const tones = [
-        LuniColors.cyan,
-        LuniColors.rose,
-        LuniColors.warm,
-        LuniColors.green,
-        LuniColors.purple,
-        LuniColors.orange,
-      ];
-      setState(() {
-        _shots = [_Shot(id, 'vừa xong', tones[id % tones.length]), ..._shots]
-            .take(12)
-            .toList();
-      });
-      luniToast(context, 'Đã chụp 1 ảnh', icon: 'camera', color: LuniColors.cyan);
+      // Tell the robot to take a still. The C5 relays CAMERA_CAPTURE to the S3
+      // (see esp32-c5 WsMessageHandler::handleCameraCapture) — no payload. The
+      // captured JPEG comes back asynchronously as a `camera_frame` event,
+      // handled in _onWsEvent, which is what actually adds the photo.
+      ref
+          .read(activeDeviceWsProvider(widget.device.id))
+          .sendCommand('camera_capture', const {});
+      luniToast(context, 'Đang chụp ảnh…', icon: 'camera', color: LuniColors.cyan);
     }
 
     if (_timer != 0) {
@@ -294,6 +321,7 @@ class _MotionScreenState extends State<MotionScreen> {
                         big: true,
                         viewfinder: true,
                         label: 'ẢNH GẦN NHẤT',
+                        bytes: topShot?.bytes,
                       ),
                       ..._cornerBrackets(),
                       Positioned(
@@ -329,8 +357,6 @@ class _MotionScreenState extends State<MotionScreen> {
                                   fontSize: 10, color: LuniColors.txSoft)),
                         ),
                       ),
-                      if (_flash)
-                        const ColoredBox(color: Color(0xEBF0F4FF)),
                     ],
                   ),
                 ),
@@ -339,21 +365,6 @@ class _MotionScreenState extends State<MotionScreen> {
               // capture controls
               Row(
                 children: [
-                  _CamChip(
-                    icon: 'flash',
-                    label: _flashMode == 'off'
-                        ? 'Tắt đèn'
-                        : _flashMode == 'auto'
-                            ? 'Đèn tự động'
-                            : 'Bật đèn',
-                    active: _flashMode != 'off',
-                    onTap: () => setState(() => _flashMode = _flashMode == 'off'
-                        ? 'auto'
-                        : _flashMode == 'auto'
-                            ? 'on'
-                            : 'off'),
-                  ),
-                  const SizedBox(width: 10),
                   _CamChip(
                     icon: 'clock',
                     label: _timer != 0 ? 'Hẹn ${_timer}s' : 'Không hẹn',
@@ -492,7 +503,7 @@ class _MotionScreenState extends State<MotionScreen> {
                       child: SizedBox(
                         width: 96,
                         height: 72,
-                        child: _PhotoFrame(tone: p.tone),
+                        child: _PhotoFrame(tone: p.tone, bytes: p.bytes),
                       ),
                     ),
                     const SizedBox(height: 5),
@@ -521,7 +532,8 @@ class _MotionScreenState extends State<MotionScreen> {
             borderRadius: BorderRadius.circular(16),
             child: AspectRatio(
               aspectRatio: 4 / 3,
-              child: _PhotoFrame(tone: p.tone, big: true, label: 'ẢNH ROBOT'),
+              child: _PhotoFrame(
+                  tone: p.tone, big: true, label: 'ẢNH ROBOT', bytes: p.bytes),
             ),
           ),
           Padding(
@@ -529,7 +541,10 @@ class _MotionScreenState extends State<MotionScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('1600×1200 · JPEG',
+                Text(
+                    p.bytes != null
+                        ? '${(p.bytes!.length / 1024).toStringAsFixed(1)} KB · JPEG'
+                        : 'JPEG',
                     style: LuniTextStyles.mono
                         .copyWith(fontSize: 11, color: LuniColors.txFaint)),
                 Text(p.time,
@@ -936,17 +951,25 @@ class _PhotoFrame extends StatelessWidget {
     this.big = false,
     this.viewfinder = false,
     this.label = 'ẢNH ROBOT',
+    this.bytes,
   });
 
   final Color tone;
   final bool big;
   final bool viewfinder;
   final String label;
+  final Uint8List? bytes;
 
-  static const String _res = '1600×1200';
+  static const String _res = '160×120';
 
   @override
   Widget build(BuildContext context) {
+    // A real frame from the robot — show it; the striped placeholder below is
+    // only for seeded history and the empty viewfinder.
+    final b = bytes;
+    if (b != null) {
+      return Image.memory(b, fit: BoxFit.cover, gaplessPlayback: true);
+    }
     return CustomPaint(
       painter: _StripePainter(tone),
       child: Stack(

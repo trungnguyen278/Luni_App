@@ -7,6 +7,7 @@ import 'core/config/theme.dart';
 import 'features/auth/screens/forgot_password_screen.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/auth/screens/register_screen.dart';
+import 'features/auth/screens/splash_screen.dart';
 import 'features/device/screens/device_detail_screen.dart';
 import 'features/device/screens/device_sharing_screen.dart';
 import 'features/home/screens/home_screen.dart';
@@ -22,25 +23,31 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     initialLocation: '/',
     redirect: (context, state) {
       final location = state.matchedLocation;
-      final isAuthRoute =
-          location == '/' ||
-          location == '/login' ||
-          location == '/register' ||
-          location == '/forgot-password';
 
-      if (!authState.isAuthenticated && !isAuthRoute) {
-        return '/login';
+      // Still restoring a remembered session — hold on the splash ('/').
+      if (authState.isRestoring) {
+        return location == '/' ? null : '/';
       }
 
-      if (authState.isAuthenticated &&
-          (location == '/' || location == '/login')) {
+      if (!authState.isAuthenticated) {
+        // Auth screens are reachable; the splash and protected routes bounce
+        // to login once the session check has finished.
+        final canStay =
+            location == '/login' ||
+            location == '/register' ||
+            location == '/forgot-password';
+        return canStay ? null : '/login';
+      }
+
+      // Authenticated — keep users off the splash and login screens.
+      if (location == '/' || location == '/login') {
         return '/home';
       }
 
       return null;
     },
     routes: [
-      GoRoute(path: '/', builder: (context, state) => const LoginScreen()),
+      GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
         path: '/register',

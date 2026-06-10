@@ -55,13 +55,11 @@ function MotionTab({ device, update }) {
   const caps = d.caps || {};
 
   const [dir, setDir] = useS('stop');
-  const [flash, setFlash] = useS(false);
   const [shots, setShots] = useS([
     { id: 3, t: '12:02', tone: '#FFD166' },
     { id: 2, t: '11:47', tone: '#76B8FF' },
     { id: 1, t: '09:30', tone: '#7BE88E' },
   ]);
-  const [flashMode, setFlashMode] = useS('auto'); // off | auto | on
   const [timer, setTimer] = useS(0);              // 0 | 3 | 10 (s)
   const [view, setView] = useS(null);             // photo opened in sheet
   const counter = _useRef(4);
@@ -78,7 +76,6 @@ function MotionTab({ device, update }) {
 
   const capture = () => {
     if (off) return;
-    if (flashMode !== 'off') { setFlash(true); setTimeout(() => setFlash(false), 320); }
     const fire = () => {
       const id = counter.current++;
       const tones = ['#5BE9FF', '#FF6B9D', '#FFD166', '#7BE88E', '#B48CFF', '#FF9D5B'];
@@ -132,13 +129,10 @@ function MotionTab({ device, update }) {
             <Icon name="image" size={12} color="var(--cyan)" /> Ảnh tĩnh
           </span>
           <span className="mono" style={{ position: 'absolute', bottom: 10, right: 10, fontSize: 10, color: 'var(--tx-soft)', background: 'rgba(5,7,13,.62)', padding: '3px 7px', borderRadius: 6 }}>{shots[0] ? shots[0].t : '—'}</span>
-          {/* flash overlay */}
-          {flash && <div style={{ position: 'absolute', inset: 0, background: '#f0f4ff', animation: 'popIn .12s ease', opacity: .92 }} />}
         </div>
 
         {/* capture controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12 }}>
-          <CamChip icon="flash" label={flashMode === 'off' ? 'Tắt đèn' : flashMode === 'auto' ? 'Đèn tự động' : 'Bật đèn'} active={flashMode !== 'off'} onClick={() => setFlashMode(m => m === 'off' ? 'auto' : m === 'auto' ? 'on' : 'off')} />
           <CamChip icon="clock" label={timer ? `Hẹn ${timer}s` : 'Không hẹn'} active={!!timer} onClick={() => setTimer(t => t === 0 ? 3 : t === 3 ? 10 : 0)} />
           <button className="press" onClick={capture} aria-label="Chụp ảnh" style={{ marginLeft: 'auto', width: 60, height: 60, borderRadius: '50%', background: 'var(--cyan)', display: 'grid', placeItems: 'center', flex: 'none', boxShadow: '0 8px 22px -6px rgba(91,233,255,.6)', border: '3px solid #06222b' }}>
             <Icon name="camera" size={26} color="#06222b" strokeWidth={2} />
