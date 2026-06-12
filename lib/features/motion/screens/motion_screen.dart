@@ -1,12 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/theme.dart';
 import '../../../core/network/ws_client.dart';
+import '../../../core/storage/capture_store.dart';
 import '../../../shared/models/device.dart';
 import '../../../shared/widgets/luni_kit.dart';
 import '../../../shared/widgets/luni_toast.dart';
@@ -78,6 +79,8 @@ class MotionScreen extends ConsumerStatefulWidget {
 }
 
 class _MotionScreenState extends ConsumerState<MotionScreen> {
+  static const _logTag = 'luni.camera';
+
   String _dir = 'stop';
   int _timer = 0; // 0 | 3 | 10 (s)
   int _moveSpeed = 55;
@@ -110,17 +113,46 @@ class _MotionScreenState extends ConsumerState<MotionScreen> {
     super.dispose();
   }
 
-  void _onWsEvent(DeviceWsEvent event) {
-    if (event.type != DeviceWsEventType.cameraFrame) return;
-    final data = event.payload['data'];
-    if (data is! String || data.isEmpty) return;
+  Future<void> _onWsEvent(DeviceWsEvent event) async {
+    if (event.type != DeviceWsEventType.cameraFrame) {
+      // Confirms events are flowing at all while debugging capture.
+      debugPrint('[$_logTag] ws event: ${event.type.name}');
+      return;
+    }
+    final payload = event.payload;
+    final data = payload['data'];
+    debugPrint(
+      '[$_logTag] camera_frame in · format=${payload['format']} '
+      'reportedSize=${payload['size']} '
+      'b64Len=${data is String ? data.length : 'n/a'}',
+    );
+    if (data is! String || data.isEmpty) {
+      debugPrint('[$_logTag] camera_frame dropped: missing/empty data');
+      return;
+    }
     final Uint8List bytes;
     try {
       bytes = base64Decode(data);
-    } on FormatException {
+    } on FormatException catch (e) {
+      debugPrint('[$_logTag] base64 decode failed: $e');
       return;
     }
+    // Validate JPEG framing so we can tell "bad pipe" from "bad image".
+    final soi = bytes.length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xD8;
+    final eoi = bytes.length >= 2 &&
+        bytes[bytes.length - 2] == 0xFF &&
+        bytes[bytes.length - 1] == 0xD9;
+    debugPrint(
+      '[$_logTag] decoded ${bytes.length} B · SOI=${soi ? 'ok' : 'MISSING'} '
+      'EOI=${eoi ? 'ok' : 'MISSING'}',
+    );
     if (bytes.isEmpty || !mounted) return;
+
+    // Persist to disk so the raw JPEG can be pulled off the device and
+    // inspected (debug only — see CaptureStore).
+    final saved = await CaptureStore.saveJpeg(bytes);
+    if (!mounted) return;
+
     final id = _counter++;
     const tones = [
       LuniColors.cyan,
@@ -135,7 +167,12 @@ class _MotionScreenState extends ConsumerState<MotionScreen> {
           .take(12)
           .toList();
     });
-    luniToast(context, 'Đã chụp 1 ảnh', icon: 'camera', color: LuniColors.cyan);
+    luniToast(
+      context,
+      saved != null ? 'Đã chụp 1 ảnh · ${bytes.length ~/ 1024} KB' : 'Đã chụp 1 ảnh',
+      icon: 'camera',
+      color: LuniColors.cyan,
+    );
   }
 
   void _drive(String nd) {
@@ -156,6 +193,8 @@ class _MotionScreenState extends ConsumerState<MotionScreen> {
       // (see esp32-c5 WsMessageHandler::handleCameraCapture) — no payload. The
       // captured JPEG comes back asynchronously as a `camera_frame` event,
       // handled in _onWsEvent, which is what actually adds the photo.
+      debugPrint(
+          '[$_logTag] -> camera_capture sent (device=${widget.device.id}, timer=${_timer}s)');
       ref
           .read(activeDeviceWsProvider(widget.device.id))
           .sendCommand('camera_capture', const {});
